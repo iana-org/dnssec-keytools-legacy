@@ -1,5 +1,5 @@
-# $Id: version.m4 433 2010-06-10 20:15:09Z jakob $
+# $Id: version.m4 477 2010-06-12 19:46:00Z jakob $
 #
 # this file contains the current version
 
-define([KEYTOOLS_VERSION], [20100610])
+define([KEYTOOLS_VERSION], [20100612])
