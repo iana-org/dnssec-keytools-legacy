@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: printlog 370 2010-05-29 19:00:01Z jakob $
+# $Id: printlog 497 2010-07-13 20:12:26Z jakob $
 
 LOGFILE=$1
 COPIES=${2:-1}
@@ -21,4 +21,5 @@ enscript \
 	--copies=${COPIES} \
 	--no-header \
 	--margins=::${top_margin}: \
-	--font="Courier10"
+	--font=Courier10 \
+	--setpagedevice=Collate:true

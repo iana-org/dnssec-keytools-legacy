@@ -1,25 +1,22 @@
 /*
- * $Id: wksr.c 422 2010-06-09 06:37:17Z jakob $
+ * $Id: wksr.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2006, 2007 Richard H. Lamb (RHL). All rights reserved.
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
+ * Copyright (c) 2006 Richard H. Lamb ("RHL") slamb@xtcn.com
  *
- * Based on
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- * and other libraries Copyright (C) RHLamb 1995-2007
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Author: RHLamb 2009,2010
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -70,6 +67,21 @@ static char copyyeartag[]="#COPYYEAR";
 static int rxupload(FILE *fin,uint32_t clen);
 static int prevalidate(FILE *fout);
 
+/*! wksr main
+
+    Called by web server as a cgi to respond to KSR submissions. Does first
+    pass of validatinf submission and responds with properly formatted (but
+    dummy key) response. No need for HSM. assumes client side SSL
+    authentication has been successuffly completed by web server. The
+    following environment variables are read:
+
+    REMOTE_ADDR, HTTP_VIA, SSL_CLIENT_S_DN
+    REQUEST_METHOD, CONTENT_TYPE, CONTENT_LENGTH, HTTP_HOST, SCRIPT_NAME
+
+    \param argc argument count
+    \param *argv[] pointer to args described above
+    \return -1 on error; else 0
+ */
 int main(int argc,char *argv[])
 {
   int ret,sawpost,ctypok;
@@ -231,31 +243,42 @@ int main(int argc,char *argv[])
   return 0;
 }
 
-/*
-    POST /nph-xxtcp.cgi HTTP/1.1
-    Host: www.netwitness.org
-    User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
-    Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*?/?*;q=0.5
-    Accept-Language: en-us,en;q=0.5
-    Accept-Encoding: gzip,deflate
-    Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
-    Keep-Alive: 300
-    Connection: keep-alive
-    Referer: http://www.netwitness.org/xx.cgi
-    Content-Type: multipart/form-data; boundary=---------------200071578424558
-    Content-Length: 4913
+/*! Process incomming POST comming in on fin
 
-    -----------------200071578424558
-    Content-Disposition: form-data; name="fileframe"
+    Does all the work including schema validation, KSR prevalidation, logging,
+    outputing a response and, if it passes, sending email notifying the DNSSEC
+    administrator that a valid KSR has been received.
 
-    true
-    -----------------200071578424558
-    Content-Disposition: form-data; name="file"; filename="keyinst.exe"
-    Content-Type: application/x-sdlc
-
-    MZ....................data...
-    -----------------200071578424558--
+    \param fin file pointer to open incomming stream from client
+    \return 0 if ok -1 if fail
 */
+
+/*
+ *  POST /nph-xxtcp.cgi HTTP/1.1
+ *  Host: www.netwitness.org
+ *  User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
+ *  Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*?/?*;q=0.5
+ *  Accept-Language: en-us,en;q=0.5
+ *  Accept-Encoding: gzip,deflate
+ *  Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+ *  Keep-Alive: 300
+ *  Connection: keep-alive
+ *  Referer: http://www.netwitness.org/xx.cgi
+ *  Content-Type: multipart/form-data; boundary=---------------200071578424558
+ *  Content-Length: 4913
+ *  
+ *  -----------------200071578424558
+ *  Content-Disposition: form-data; name="fileframe"
+ *  
+ *  true
+ *  -----------------200071578424558
+ *  Content-Disposition: form-data; name="file"; filename="keyinst.exe"
+ *  Content-Type: application/x-sdlc
+ *  
+ *  MZ....................data...
+ *  -----------------200071578424558--
+ *  
+ */
 static int rxupload(FILE *fin,uint32_t clen)
 {
   char buf[MAXPATHLEN];
@@ -394,14 +417,23 @@ static int rxupload(FILE *fin,uint32_t clen)
     fflush(fout);
     rewind(fout);
     printf("FILE: %s<br>\n",fname?fname:"-");
-    /* xmllint added for Jakob */
-    snprintf(buf, sizeof(buf),
-      "%s --noout --relaxng %s/ksr.rng %s > /dev/null",
-      WKSR_XMLLINT, basedir, lfname);
-    if(system(buf)) {
-      logger_error("Bad XML format");
+
+    /*! xmllint added for Jakob */
+    if(fname) { /* test only if real */
+      snprintf(buf, sizeof(buf),
+	       "%s --noout --relaxng %s/ksr.rng \"%s\" > /dev/null",
+	       WKSR_XMLLINT, basedir, lfname);
+      if(system(buf)) {
+	logger_error("Bad XML format:|%s|%s|",buf,lfname);
+	free(lfname);
+	goto fend;
+      }
+    } else {
+      fclose(fout);
+      free(lfname);
       goto fend;
     }
+
     if(prevalidate(fout)) { /* error - leave it where it is */
       fclose(fout);
     } else { /* success - move it to be processed */
@@ -437,7 +469,9 @@ static int rxupload(FILE *fin,uint32_t clen)
 
 
 /*
- * return non-zero if KSR had errors
+ *! Do basic validation of KSR w/o HSM.  Similar to ksrsigner.
+\param fksr file pointer to temporary file with incomming KSR
+\return 0 if ok, non-zero if KSR had errors
  */
 static int prevalidate(FILE *fksr)
 {
@@ -453,7 +487,16 @@ static int prevalidate(FILE *fksr)
   /*
    * Most Initialization done prior to this
    */
-  maxexpiration = t_now + (T_VLIMIT*T_ONEDAY); /* never more than 6mo ahead */
+  /*
+   * It is out of policy to provide signed key bundles for more that 
+   * 6 months in advance and as per policy we will not sign a KSR until
+   * 60 days before its cycle. 
+   * However, we will except KSR submissions up to 90 days before
+   * the start of the cycle.
+   * We account for 31 day months and the 5 day overlap for KSR
+   * submissions here.
+   */
+  maxexpiration = t_now + ((T_VLIMIT+6+5)*T_ONEDAY);
   DefaultTTL = T_DEFAULT_TTL;
   t_step = T_STEP*T_ONEDAY;
   validityperiod = T_VALIDITY*T_ONEDAY;
@@ -662,6 +705,12 @@ static int prevalidate(FILE *fksr)
  * RRSIG function
  ******************************************************************/
 
+/*! Compare function for qsort to put keys in order for rrsig function below
+
+    \param a
+    \param b
+    \return 1 if (a) key data > (b) keydata; -1 if < and 0 if equal 
+ */
 static int rrcmpr(const void *a,const void *b)
 {
   krecord * const *d1 = a;
@@ -673,7 +722,26 @@ static int rrcmpr(const void *a,const void *b)
   n = min(r1->rdatalen,r2->rdatalen);
   return memcmp(r1->rdata,r2->rdata,n);
 }
-/* compute the RRSIGs based on keys[] using keys[] where the signer flag is set.  RRSIG is calculated using domain dn, t_inception,time_t, t_expiration.  If shiwkeys is initially set, routine will writw keys to ftmp as well as sigs. Note: validateable keybundles are written into tmp to simplify final valisation. */
+
+/*! compute the RRSIGs
+
+    compute the RRSIGs based on keys[] using keys[] where the signer flag is
+    set. RRSIG is calculated using domain dn, t_inception,time_t,
+    t_expiration. If shiwkeys is initially set, routine will writw keys to
+    ftmp as well as sigs. Note: validateable keybundles are written into tmp
+    to simplify final valisation.
+
+    This is non-HSM dependant version for web based prevalidation.
+
+    \param keys list of keys over which we want the RRSIG
+    \param keycnt number of keys in list
+    \param dn doman name to incorporate into calculation
+    \param t_inception RRSIG inception time
+    \param t_expiration RRSIG expiration time
+    \param showkeys set on first call so that keys are output as well as signatures
+    \param ftmp where output is written.
+    \return 0 if success.
+ */
 int rrsig(krecord *keys[],int keycnt,char *dn,time_t t_inception,time_t t_expiration,int *showkeys,FILE *ftmp)
 {
   uint8_t *w,wire[1024];
@@ -844,7 +912,21 @@ int rrsig(krecord *keys[],int keycnt,char *dn,time_t t_inception,time_t t_expira
 
 
 
-/* validate the keybundle made up of keys in klist and signatures in s. returns 0 if validation successful. HSM path has no reliance on external routines like OPENSSL.  If no HSM, OPENSSL is used.  This is true for the Web based pre-acceptance testing on KSRs */
+/*! validate the keybundle
+
+    Validate the keybundle made up of keys in klist and signatures in s.
+    returns 0 if validation successful. HSM path has no reliance on external
+    routines like OPENSSL. If no HSM, OPENSSL is used. This is true for the
+    Web based pre-acceptance testing on KSRs
+
+    This is non-HSM version and does not truly validate SKR since there is no
+    private key access. (i.e., this can be spoofed). But it is a good
+    prevalidation step.
+
+    \param s Signature created by one of the key in klist
+    \param klist List of krecord structures.
+    \return 0
+ */
 #include <openssl/bn.h>
 
 int validatekeybundle(signature *s,krecord *klist)
@@ -1039,10 +1121,26 @@ int validatekeybundle(signature *s,krecord *klist)
   return ret;
 }
 
+/*! Misc PKCS11 support functions for this non-HSM and non-PKCS11 web based
+    validator.
+ */
+
+/*! Check if corresponding private key available. Always no for this non-HSM
+    case.
+
+    \param vkr pkcs11 key block
+    \return 0  No-private key.
+ */
 int pkcs11_have_private_key(void *vkr)
 {
   return 0; /* non-HSM so no private key */
 }
+
+/*! Empty pkcs11 key block free routine to satisfy common code between
+    ksrsigner and wksr
+
+    \param vkr pkcs11 key block
+ */
 void pkcs11_free_pkkeycb(void *vkr)
 {
   /* arg should always be null */

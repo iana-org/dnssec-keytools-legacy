@@ -1,25 +1,19 @@
 /*
- * $Id: util.c 352 2010-05-28 08:52:02Z jakob $
+ * $Id: util.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2006, 2007 Richard H. Lamb (RHL). All rights reserved.
- *
- * Based on
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- * and other libraries Copyright (C) RHLamb 1995-2007
- *
- * Permission to use, copy, modify, and distribute this software for any
+ * Copyright (C) 2006 Richard H. Lamb ("RHL") slamb@xtcn.com
+ * 
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Author: RHLamb
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -42,8 +36,16 @@ static const char base64[] =
 /*******************************************************************
  * misc routines
  *******************************************************************/
-/* parse line /w delc as delimiter into no more than maxargs in argv[]
-   skipping whitespace (' ' and \t).  Return the number of args */
+
+/*! parse line /w delc as delimiter into no more than maxargs in argv[]
+    skipping whitespace (' ' and tab). Return the number of args
+
+    \param line pointer to buffer to be parsed
+    \param argv array of maxargs pointers to be filled in with pointers into line
+    \param maxargs size of pointer array above
+    \param delc delimiter character
+    \return number of items parsed
+*/
 int lparse(char *line,char *argv[],int maxargs,char delc)
 {
   char *cp;
@@ -65,7 +67,7 @@ int lparse(char *line,char *argv[],int maxargs,char delc)
       *line++ = '\0';
     } else {
       for(cp=line;*cp;cp++) {
-        if(/**cp == ' ' || *cp == '\t' ||*/ *cp == delc) break;
+        if(*cp == delc) break;
       }
       if(*cp) *cp++ = '\0'; /* non-zero */
       line = cp;
@@ -74,14 +76,17 @@ int lparse(char *line,char *argv[],int maxargs,char delc)
   return argc;
 }
 
-/* remove preceeding and trailing whitespace...and trailing cr and lf */
+/*! remove preceeding and trailing whitespace...and trailing cr and lf 
+    \param io pointer to buffer that will be modified in place
+    \return -1 on error; 0 if success
+*/
 int str_cleanup(char *io)
 {
   char *q,*p;
 
   if (io == NULL) return -1;
 
-  /* rid trailing space (' ' or '\t') and CF/LF */
+  /* rid trailing space (' ' or tab) and CF/LF */
   for(q = io + strlen(io);q-- != io && isspace(*q) ;) ;
 
   *(q+1) = '\0';
@@ -94,13 +99,19 @@ int str_cleanup(char *io)
   return 0;
 }
 
-/* lowercase a string */
+/*! lowercase a char 
+    \param c character to bring to lower case
+    \return lower case version of c if appropriate
+*/
 static char mytolower(char c)
 {
   if(c >= 'A' && c <= 'Z') return c|0x20;
   return c;
 }
 
+/*! lower case a whole string
+    \param str pointer to string to change to lower case in place
+ */
 void strtolower(char *str)
 {
   while(*str) {
@@ -109,13 +120,19 @@ void strtolower(char *str)
   }
 }
 
-/* uppercase a string */
+/*! uppercase a char
+    \param c character to bring to upper case
+    \return upper case version of c if appropriate
+*/
 static char mytoupper(char c)
 {
   if(c >= 'a' && c <= 'z') return c & ~0x20;
   return c;
 }
 
+/*! uppercase a whole string
+    \param str pointer to string to change to upper case in place
+*/
 void strtoupper(char *str)
 {
   while(*str) {
@@ -124,7 +141,10 @@ void strtoupper(char *str)
   }
 }
 
-/* convert UTC ltmp time (secs) into YYYYMMDDHHmmss in str */
+/*! convert UTC ltmp time (secs) into YYYYMMDDHHmmss in str 
+    \param ltmp time in seconds to convert to gmt string
+    \param str pointer to buffer to put result in
+*/
 void gmtstrtime(time_t ltmp,char *str)
 {
   struct tm *t;
@@ -132,7 +152,10 @@ void gmtstrtime(time_t ltmp,char *str)
   sprintf(str,"%04u%02u%02u%02u%02u%02u",t->tm_year+1900,t->tm_mon + 1,t->tm_mday,t->tm_hour,t->tm_min,t->tm_sec);  /* CVTY FIXME - just dont be so paranoid */
 }
 
-/* convert UTC ltmp time (secs) into YYYY-MM-DDTHH:mm:ss+00:00 */
+/*! convert UTC ltmp time (secs) into YYYY-MM-DDTHH:mm:ss+00:00 
+    \param zsec time in seconds 
+    \param str pointer to buffer to put result in
+*/
 void sec2ztime(time_t zsec,char *str)
 {
   struct tm *t;
@@ -140,7 +163,11 @@ void sec2ztime(time_t zsec,char *str)
   sprintf(str,"%04u-%02u-%02uT%02u:%02u:%02u+00:00",t->tm_year+1900,t->tm_mon + 1,t->tm_mday,t->tm_hour,t->tm_min,t->tm_sec);  /* CVTY FIXME - just dont be so paranoid */
 }
 
-/* dump (ptr,n) in captital HEX chars */
+/*! dump (ptr,n) in captital HEX chars 
+    \param ptr pointer to buffer with bytes to display
+    \param n number of bytes in above buffer
+    \return 0
+*/
 int hdump(const uint8_t *ptr,int n)
 {
   int i;
@@ -149,6 +176,11 @@ int hdump(const uint8_t *ptr,int n)
   return 0;
 }
 
+/*! dump n bytes from ptr in hex and ascii format
+    \param ptr pointer to buffer with bytes to display
+    \param n number of bytes in above buffer
+    \return 0
+ */
 int rdump(const uint8_t *ptr,int n)
 {
   int i,j1,j2; char buf[80]; static char htoas[]="0123456789ABCDEF";
@@ -165,7 +197,10 @@ int rdump(const uint8_t *ptr,int n)
   return 0;
 }
 
-/* return as binary long the ASCIIZ number in str */
+/*! return as binary long the ASCIIZ number in str 
+    \param str printable asciiz string representing a 32 bit number
+    \return unsigned 32 bit int equiv to str.
+*/
 uint32_t atoul(const char *str)
 {
   char *endptr;
@@ -184,7 +219,10 @@ uint32_t atoul(const char *str)
   return val;
 }
 
-/* return as binary the ASCII hex char in c */
+/*! return as binary the ASCII hex char in c 
+    \param c ascii hex char
+    \return binary value of character c
+*/
 int hex2i(char c)
 {
   if(c >= '0' && c <= '9') return (int)(c - '0');
@@ -193,7 +231,15 @@ int hex2i(char c)
   return -1;
 }
 
-/* base64 encode (in,n) into ASCIIZ out. "outlen" should be at least (4/3)*n */
+/*! base64 encode (in,n) into ASCIIZ out
+    "outlen" should be at least (4/3)*n 
+
+    \param out pointer to buffer where base64 encoded string goes
+    \param outlen available space in above buffer
+    \param in pointer to binary data to encode
+    \param n number of bytes of incomming buffer
+    \return number of bytes in output buffer
+*/
 int base64encode(char *out, size_t outlen, const uint8_t *in,int n)
 {
   int len;
@@ -224,6 +270,10 @@ int base64encode(char *out, size_t outlen, const uint8_t *in,int n)
   return len;
 }
 
+/*! local malloc wrapper to handle heap exhaustion
+    \param n number of bytes to allocate
+    \return char pointer to new allocated buffer
+ */
 static char *util_malloc(int n)
 {
   char *p;
@@ -234,7 +284,13 @@ static char *util_malloc(int n)
   return p;
 }
 
-/* return binary out from base64 encoded ASCIIZ in */
+/*! return binary out from base64 encoded ASCIIZ in 
+
+    \param in pointer to ASCIIZ base64 string
+    \param out pointer to buffer to put binary result in
+    \param outlen size of above buffer
+    \return number of bytes decoded into out
+*/
 int base64decode(const char *in,uint8_t *out, size_t outlen)
 {
   char *c,*p,*p0;
@@ -270,8 +326,12 @@ int base64decode(const char *in,uint8_t *out, size_t outlen)
   return len;
 }
 
-/* generate airline record locator style random strings. note: returned value
-   out will be overwritten by subsequent calls */
+/*! generate airline record locator style random strings. 
+    note: returned value out will be overwritten by subsequent calls
+
+    \return char * pointer to temporary buffer containing an airline style
+    random string
+*/
 const char *randomstring()
 {
   int i,j;
@@ -295,7 +355,12 @@ const char *randomstring()
   return out;
 }
 
-/* return mbuf filled with pgpwordlist representation of (hash,hashlen) */
+/*! return mbuf filled with pgpwordlist representation of (hash,hashlen) 
+
+    \param hash poiinter to buffer with hash to be wordlist encoded
+    \param hashlen number of bytes in above
+    \return mbuf with ASCIIZ PGP wordlist
+*/
 mbuf *pgp_wordlist2(const uint8_t *hash,int hashlen)
 {
   mbuf *bp;
@@ -326,19 +391,26 @@ mbuf *pgp_wordlist2(const uint8_t *hash,int hashlen)
  *********************************************************/
 #include "sha1.h"
 #include "sha2.h"
-/*
- * buf == NULL: Init
- * len = 0: END and return signature in buf
- * else digest len bytes of buf into signature
- *
- genhashctx gh;
- gh.type = HASH_SHA256;
- hashit(&gh,NULL,0);
- hashit(&gh,buf,n);
- hashlen = hashit(&gh,hash,0);
-*/
+
 /*#define MAX_HASH_CTX max(sizeof(SHA1Context),sizeof(SHA256_CTX)) */
 #define MAX_HASH_CTX 1000 /* FIXME - above works for plain compile but not advanced */
+/*! hash
+
+    buf == NULL: Init
+    len = 0: END and return signature in buf
+    else digest len bytes of buf into signature
+
+    genhashctx gh;
+    gh.type = HASH_SHA256;
+    hashit(&gh,NULL,0);  Initialize
+    hashit(&gh,buf,n);   Accumulate
+    hashlen = hashit(&gh,hash,0); Finalize
+
+    \param gh pointer to hash structure used to accumulate hash calculation
+    \param buf NULL or buffer containing data to incorporate into the hash
+    \param len 0 or number of bytes in above buffer
+    \return -1 if fail. 0 or hashlength if success.
+*/
 int hashit(genhashctx *gh,uint8_t *buf,int len)
 {
   if(buf == NULL) {
@@ -404,6 +476,13 @@ int hashit(genhashctx *gh,uint8_t *buf,int len)
   }
 }
 
+/*! compute hash of the file openned with file pointer fp
+
+    \param fp file pointer to open file to read data from till eof
+    \param htype hash type to calculate HASH_SHA1 or HASH_SHA256
+    \param dgst pointer to buffer to write hash to (20/32 bytes for sha1/sha256 respectively)
+    \return number of bytes in dgst
+ */
 int hashfile(FILE *fp,int htype,uint8_t *dgst)
 {
   uint8_t lbuf[1024];

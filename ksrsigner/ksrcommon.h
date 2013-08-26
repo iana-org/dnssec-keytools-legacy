@@ -1,30 +1,23 @@
 /*
- * $Id: ksrcommon.h 320 2010-05-27 20:35:21Z jakob $
+ * $Id: ksrcommon.h 566 2010-10-27 20:12:05Z jakob $
  *
- * Copyright (C) 2009 Internet Corporation for Assigned Names
- *                         and Numbers (ICANN)
- *                            and
- * Copyright (C) 2006, 2007 Richard H Lamb (RHL)
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN+RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN+RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Based on
- * "IANA DNSSEC Signed Root Testbed Project,Copyright (C) ICANN 2007,2008,2009"
- * and
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- *
- * Author: RHLamb 2009,2010
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
 #ifndef _KSRCOMMON_H_
 #define _KSRCOMMON_H_
 

@@ -1,58 +1,48 @@
 /*
- * $Id: kskgen.h 297 2010-05-27 02:25:56Z lamb $
+ * $Id: kskgen.h 564 2010-10-25 06:44:08Z jakob $
  *
- * Copyright (C) 2009 Internet Corporation for Assigned Names
- *                         and Numbers (ICANN)
- *                            and
- * Copyright (C) 2006, 2007 Richard H Lamb (RHL)
+ * Copyright (c) 2009 Internet Corporation for Assigned Names ("ICANN")
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN+RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN+RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Based on
- * "IANA DNSSEC Signed Root Testbed Project,Copyright (C) ICANN 2007,2008,2009"
- * and
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- *
- * Author: RHLamb
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #ifndef _KSKGEN_H_
 #define _KSKGEN_H_
 
-extern int debug;
+extern int debug;  /*!< Global debug flag */
 
 typedef struct {
   /* dnssec */
-  char dn[256]; /* domain name */
-  int alg;
-  int flags;
-  int proto;
-  char dnskey[4096]; /* dnssec pubkey fmt */
-  char ds1[128]; /* DS sha1 */
-  char ds2[128]; /* DS sha256 */
-  mbuf *ds2bp;
-  int tag;
+  char dn[256];       /*!< DNSKEY domain name */
+  int alg;            /*!< DNSKEY algorithm identifier */
+  int flags;          /*!< DNSKEY flags field */
+  int proto;          /*!< DNSKEY protocol identifier */
+  char dnskey[4096];  /*!< DNSKEY public key */
+  char ds1[128];      /*!< DS sha1 */
+  char ds2[128];      /*!< DS sha256 */
+  mbuf *ds2bp;        /*!< DS mbuf */
+  int tag;            /*!< DNSSEC key tag */
 
-  /* x509 */
-  mbuf *pkcspub; /* pkcs pubkey fmt */
-  int htype; /* hash type */
-  const char *dgstalg,*dgstalg2; /* OIDs */
-  mbuf *distinguishedname;
-  char *email;
+  mbuf *pkcspub;                  /*!< X.509 Public Key */
+  int htype;                      /*!< Hash Type */
+  const char *dgstalg,*dgstalg2;  /*!< Digest Algorithm */
+  mbuf *distinguishedname;        /*!< Distinguished Name */
+  char *email;                    /*!< Email Address */
 
-  /* pkcs11 */
-  mbuf *label;
-  void *pkcb;
+  mbuf *label;  /*!< PKCS#11 Key Label*/
+  void *pkcb;   /*!< PKCS#11 Control Block */
 } kcrecord;
 
 #endif /* _KSKGEN_H_ */

@@ -1,21 +1,21 @@
 /*
- * $Id: keybackup.c 417 2010-06-09 00:21:32Z lamb $
+ * $Id: keybackup.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2007 Internet Corporation for Assigned Names 
- *                         and Numbers ("ICANN")
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -328,6 +328,16 @@ int main(int argc,char *argv[])
   return 0;
 }
 
+/*! get array of key handles matching CKA_LABEL label and type iclass from slot sh
+
+    \param sh handle referrencing open HSM slot to search
+    \param label pointer to ASCIIZ CKA_LABEL
+    \param iclass CKO_[PUBLIC|PRIVATE|SECRET]_KEY
+    \param hKeyA pointer to array of key handle buffers
+    \param ofound pointer to int buffer to fill in with number of key handles
+           found
+    \return -1 if error; 0 if success
+*/
 int getkeyarray(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS iclass,CK_OBJECT_HANDLE *hKeyA,int *ofound)
 {
   int j;
@@ -367,6 +377,13 @@ int getkeyarray(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS iclass,C
   return 0;
 }
 
+/*! get key handle for wrapping key corresponding to CKA_LABEL label from slot sh
+
+    \param sh handle refferencing open HSM slot to search
+    \param label pointer to ASCIIZ CKA_LABEL
+    \param hWrappingKey pointer to key handle buffer to fill in on return
+    \return -1 if error; 0 if success
+ */
 int getwrapkey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_HANDLE *hWrappingKey)
 {
   int i;
@@ -444,6 +461,12 @@ int getwrapkey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_HANDLE *hWrappi
   return 0;
 }
 
+/*! display keys that match CKA_LABEL label in slot referrenced by sh
+
+    \param sh handle referrencing open HSM slot to search
+    \param label pointer to ASCIIZ CKA_LABEL
+    \return -1 if error; 0 if success
+ */
 int listkeys(CK_SESSION_HANDLE sh,char *label)
 {
   CK_RV rv;
@@ -534,6 +557,13 @@ int listkeys(CK_SESSION_HANDLE sh,char *label)
   return -1;
 }
 
+/*! delete key(s) from HSM slot sh matching label and class
+
+    \param sh handle referrencing open HSM slot to search
+    \param label pointer to ASCIIZ CKA_LABEL to match
+    \param class CKO_[PUBLIC|PRIVATE|SECRET]_KEY
+    \return -1 if error 0 of success
+ */
 int deletekey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS class)
 {
   CK_RV rv;
@@ -575,6 +605,13 @@ int deletekey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS class)
   }
 }
 
+/*! see if the HSM has a key matching label and class already in it
+
+    \param sh handle to open HSM slot to search
+    \param label pointer to ASCIIZ CKA_LABEL to match
+    \param class CKO_[PUBLIC|PRIVATE|SECRET]_KEY
+    \return 0 if found match; -1 otherwise
+ */
 int havekey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS class)
 {
   CK_RV rv;
@@ -603,6 +640,15 @@ int havekey(CK_SESSION_HANDLE sh,CK_UTF8CHAR *label,CK_OBJECT_CLASS class)
   }
 }
 
+/*! read keys that were encoded by this program from the fp stream unwrpping
+    them with the internal HSM key referrenced by hWrappingkey (if
+    appropriate) into the HSM slot referrenced by sh
+
+    \param sh handle to open HSM slot to read keys into
+    \param hWrappingkey key handle for unwrapping key
+    \param fp open file pointer to read from until eof
+    \return 0 if success; -1 if error
+ */
 int read_keys_into_hsm(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hWrappingkey,FILE *fp)
 {
   char *p64,*p,lbuf[512];
@@ -859,6 +905,14 @@ int read_keys_into_hsm(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hWrappingkey,FILE *
   return -1;
 }
 
+/*! wrap private key referrenced by hPriv with internal wrapping key
+    referrenced by hWrappingKey in slot sh and print out
+
+    \param sh handle to open HSM slot
+    \param hPriv handle to private key to wrap
+    \param hWrappingKey handle to wrapping key to use
+    \return -1 if error; 0 if success
+ */
 int wrap_and_export_privkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPriv,CK_OBJECT_HANDLE hWrappingKey)
 {
   CK_RV rv;
@@ -906,6 +960,13 @@ int wrap_and_export_privkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPriv,CK_OBJEC
   if(wrappedKeyBuf) free(wrappedKeyBuf);
   return ret;
 }
+/*! print public key info for key referenced by hPub
+
+    \param sh handle to open HSM slot
+    \param hPub key handle to public key to display
+    \param flags 1:CKA_LABEL only. 0,2:CKA_LABEL,class,type,modulus,exponent,bits(2)
+    \return -1 if error; 0 if success
+ */
 int print_pubkeyinfo(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPub,int flags)
 {
   CK_RV rv;
@@ -1035,6 +1096,12 @@ int print_pubkeyinfo(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPub,int flags)
   for(j=0;j<(int)tsize;j++) free(getattributes[j].pValue);
   return 0;
 }
+/*! print public key
+
+    \param sh handle to open HSM slot
+    \param hPub key handle to public key
+    \return -1 on error; 0 if success
+ */
 int export_pubkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPub)
 {
   if(print_pubkeyinfo(sh,hPub,0)) return -1;
@@ -1042,6 +1109,13 @@ int export_pubkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPub)
   return 0;
 }
 
+/*! print private key info for key referenced by hPriv
+
+    \param sh handle to open HSM slot
+    \param hPriv key handle to public key to display
+    \param flags 1:CKA_LABEL only. 0:CKA_LABEL,class,type
+    \return -1 if error; 0 if success
+ */
 int print_privkeyinfo(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPriv,int flags)
 {
   CK_RV rv;
@@ -1113,19 +1187,30 @@ int print_privkeyinfo(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPriv,int flags)
   return 0;
 }
 
+/*! wrapper for print_privkeyinfo */
 int display_privkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPriv,int flags)
 {
   return print_privkeyinfo(sh,hPriv,flags);
 }
+
+/*! wrapper for print_privkeyinfo */
 int display_pubkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hPub,int flags)
 {
   return print_pubkeyinfo(sh,hPub,flags);
 }
+
+/*! wrapper for print_privkeyinfo */
 int display_secretkey(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hSkey,int flags)
 {
   return display_privkey(sh,hSkey,flags);
 }
 
+/*! destroy object hObj in slot sh
+
+    \param sh handle to open HSM slot
+    \param hObj handle to object to delete
+    \return -1 if error; 0 if success
+ */
 int delobject(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hObj)
 {
   CK_RV rv;
@@ -1136,7 +1221,12 @@ int delobject(CK_SESSION_HANDLE sh,CK_OBJECT_HANDLE hObj)
   myx_syslog(LOG_INFO,"Deleted object %08x\n",hObj);
   return 0;
 }
+/*! set HSM environment variables using *.hsmconfig file in current directory
+    and otherdir (if specified). Current directory takes precedence.
 
+    \param otherdir if non NULL, search this directory if no suitable hsmconfig was found for current directory
+    \return -1 if error; 0 if success.
+ */
 int scanhsms(char *otherdir)
 {
   char *p,lbuf[LBUFLEN];
@@ -1227,6 +1317,11 @@ int scanhsms(char *otherdir)
   return ret;
 }
 
+/*! convert PKCS11 function return codes to printable strings
+
+    \param rv PKCS11 library return code
+    \return ASCIIZ string corresponding to rv code
+ */
 static char *pkcs11_ret_str(CK_RV rv)
 {
   switch(rv) {

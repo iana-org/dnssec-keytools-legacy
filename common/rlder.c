@@ -1,26 +1,19 @@
 /*
- * $Id: rlder.c 356 2010-05-28 16:05:39Z lamb $
+ * $Id: rlder.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2006, 2007 Richard H. Lamb (RHL)
- *
- * Permission to use, copy, modify, and distribute this software for any
+ * Copyright (C) 2006 Richard H. Lamb ("RHL") slamb@xtcn.com
+ * 
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Based on
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- *
- * Original author: Richard Lamb
- * Fixes and Improvements by Jakob Schlyter and Stephen Morris
- *
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
  
 #include <ctype.h>
@@ -34,7 +27,7 @@
 
 static int setlen(mbuf *bp,int n);
 
-/* OID encoding support - some shortcuts for well known */
+/*! OID encoding support - some shortcuts for well known */
 struct oidtable {
   char *str;
   int len;
@@ -65,9 +58,9 @@ static struct oidtable oids[] = {
   { "pkcs7-data",9,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x07\x01" },
   { "rsaEncryption",9,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01" },
   { "sha1WithRSAEncryption",9,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x05" },
-  /* 1 2 840 113549 1 1 5 */
+  /*! 1 2 840 113549 1 1 5 */
   { "sha256WithRSAEncryption",9,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x0b" },
-  /* 1 2 840 113549 1 1 11 */
+  /*! 1 2 840 113549 1 1 11 */
   { "timeStampToken",11,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x09\x10\x02\x0e" },
   { "contentType",9,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x09\x03" },
   { "ct-TSTInfo",11,(uint8_t *)"\x2a\x86\x48\x86\xf7\x0d\x01\x09\x10\x01\x04" },
@@ -79,7 +72,7 @@ static struct oidtable oids[] = {
   { "1.3.6.1.4.1.5309.1.2.3",10,(uint8_t *)"\x2b\x06\x01\x04\x01\xa9\x3d\x01\x02\x03" },
   { "1.1.2",2,(uint8_t *)"\x29\x02" },
   { "emailProtection",8,(uint8_t *)"\x2b\x06\x01\x05\x05\x07\x03\x04" },
-  /*  resourceRecord = iso(1) identified-organization(3) dod(6) internet(1)
+  /*!  resourceRecord = iso(1) identified-organization(3) dod(6) internet(1)
                        private(4) enterprise(1) iana(1000) iana-dns(53) */
   { "1.3.6.1.4.1.1000.53",8,(uint8_t *)"\x2b\x06\x01\x04\x01\x87\x68\x35" },
   { NULL, 0, NULL }
@@ -87,17 +80,21 @@ static struct oidtable oids[] = {
 /* ... and then general purpose OID encoding */
 /*011639086226200*/
 
-/* for walking a DER struct and print contents */
+/*! local variable for walking a DER struct and printing contents */
 static int depth = 0;
 
 /*******************************************************************
- * DER Primitives: mbuf *func(derb *db,?? value)
+ *  DER Primitives: mbuf *func(derb *db, value)
  *  input: db keeps track of end of mbuf chain, value (depends on function)
  *  output: a new mbuf containing the der encoded value appended to mbuf 
  *          chain (tail pointed in db)
- *  return: pointer to this new mbuf or NULL if error
  *******************************************************************/
-/* append an integer - max size (n) <0x10000 to mbuf chain in db */
+
+/*! append an integer - max size (n) <0x10000 to mbuf chain in db 
+    \param db work structure accumulating DER elements
+    \param n < 65536 integer to encode into DER format
+    \return pointer to new mbuf or NULL if error
+ */
 mbuf *rlder_integer(derb *db,int n)
 {
   mbuf *bp;
@@ -124,7 +121,12 @@ mbuf *rlder_integer(derb *db,int n)
   return NULL;
 }
 
-/* append big int in (q,n) to mbuf chain in db. prepends a 0x00 for safety */
+/*! append big int in (q,n) to mbuf chain in db. prepends a 0x00 for safety 
+    \param db work structure accumulating DER elements
+    \param q pointer to buffer containing integer
+    \param n length of above buffer
+    \return pointer to new mbuf or NULL if error
+*/
 mbuf *rlder_binteger(derb *db,uint8_t *q,int n)
 {
   mbuf *bp;
@@ -148,7 +150,13 @@ mbuf *rlder_binteger(derb *db,uint8_t *q,int n)
   return bp;
 }
 
-/* fst must = 1 on First call */
+/*! Helper routine for OID DER encoding below. fst must = 1 on First call
+
+    \param i value in dotted OID lsit
+    \param fst 1 of first call.
+    \param len ptr to storage for accumulated length
+    \param out accumulating output buffer
+ */
 static void b7fout(uint32_t i,int fst,int *len,uint8_t *out)
 {
   if(i > 0x7F) b7fout(i >> 7,0,len,out);
@@ -162,9 +170,13 @@ static void b7fout(uint32_t i,int fst,int *len,uint8_t *out)
   }
 }
 
-/*
- * See 8.19.4 of X.690 OID encoding for details
- * http://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
+/*! prepare OID
+
+    See 8.19.4 of X.690 OID encoding for details
+    http://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
+    \param str dotted OID string
+    \param out binary OID representation of input string
+    \return -1 if error; otherwise number of bytes in out
  */
 static int oidprep(const char *str,uint8_t *out)
 {
@@ -205,7 +217,12 @@ static int oidprep(const char *str,uint8_t *out)
   return len;
 }
 
-/* append oid to current mbuf chain in db */
+/*! append oid to current mbuf chain in db 
+
+    \param db work struct for accumulating DER elements
+    \param idstr OID name or dotted numberic str
+    \return NULL if error; new filled in mbuf with DER OID otherwise
+ */
 mbuf *rlder_objid(derb *db,const char *idstr)
 {
   mbuf *bp;
@@ -242,7 +259,13 @@ mbuf *rlder_objid(derb *db,const char *idstr)
   return NULL;
 }
 
-/* append bitstring (q,n) to mbuf chain in db */
+/*! append bitstring (q,n) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param q ptr to bytes for bitstring
+    \param n number of bytes (full bytes only)
+    \return NULL if error; new mbuf filled with DER bitstring otherwise
+ */
 mbuf *rlder_bitstring(derb *db,uint8_t *q,int n)
 {
   mbuf *bp;
@@ -261,7 +284,13 @@ mbuf *rlder_bitstring(derb *db,uint8_t *q,int n)
   return bp;
 }
 
-/* append octet (q,n) to mbuf chain in db */
+/*! append octet (q,n) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param q ptr to bytes for octet string
+    \param n number of bytes (full bytes only)
+    \return NULL if error; new mbuf filled in with DER octet otherwise
+*/
 mbuf *rlder_octet(derb *db,uint8_t *q,int n)
 {
   mbuf *bp;
@@ -278,7 +307,12 @@ mbuf *rlder_octet(derb *db,uint8_t *q,int n)
   return bp;
 }
 
-/* append ASCIIZ printable string str to mbuf chain in db */
+/*! append ASCIIZ printable string str to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param str ptr to ASCIIZ string
+    \return NULL if error; new mbuf filled in with DER printable string otherwise
+*/
 mbuf *rlder_pstring(derb *db,char *str)
 {
   mbuf *bp;
@@ -297,7 +331,11 @@ mbuf *rlder_pstring(derb *db,char *str)
   return bp;
 }
 
-/* append NULL to mbuf chain in db */
+/*! append NULL to mbuf chain in db
+
+    \param db work struct to accumulate DER elements
+    \return NULL if error; new mbuf filled in with DER NULL otherwise
+*/
 mbuf *rlder_nullval(derb *db)
 {
   mbuf *bp;
@@ -310,7 +348,11 @@ mbuf *rlder_nullval(derb *db)
   return bp;
 }
 
-/* append EOC to mbuf chain in db */
+/*! append EOC to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \return NULL if error; new mbuf filled in with DER end of content otherwise
+*/
 mbuf *rlder_eoc(derb *db)
 {
   mbuf *bp;
@@ -323,7 +365,12 @@ mbuf *rlder_eoc(derb *db)
   return bp;
 }
 
-/* append boolean tf to mbuf chain in db */
+/*! append boolean tf to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param tf true or false
+    \return NULL if error; new mbuf filled in with DER boolean otherwise
+*/
 mbuf *rlder_booleanv(derb *db,int tf)
 {
   mbuf *bp;
@@ -338,7 +385,13 @@ mbuf *rlder_booleanv(derb *db,int tf)
   return bp;
 }
 
-/* append utf8 str (q,n) to mbuf chain in db */
+/*! append utf8 str (q,n) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param q pointer to buffer with UTF8 string
+    \param n length of above in bytes
+    \return NULL if error; new mbuf filled in with DER UTF8 string otherwise
+*/
 mbuf *rlder_utf8(derb *db,uint8_t *q,int n)
 {
   mbuf *bp;
@@ -355,7 +408,12 @@ mbuf *rlder_utf8(derb *db,uint8_t *q,int n)
   return bp;
 }
 
-/* append UTC time tin (secs) to mbuf chain in db */
+/*! append UTC time tin (secs) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param tin time in time_t seconds from a time() call
+    \return NULL if error; new mbuf filled in with DER UTC string otherwise
+*/
 mbuf *rlder_utctime(derb *db,time_t tin)
 {
   mbuf *bp;
@@ -385,7 +443,12 @@ mbuf *rlder_utctime(derb *db,time_t tin)
   return bp;
 }
 
-/* append general time tin (secs) to mbuf chain in db */
+/*! append general time tin (secs) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param tin time in time_t seconds from a time() call
+    \return NULL if error; new mbuf filled in with DER generalized time otherwise
+*/
 mbuf *rlder_gentime(derb *db,time_t tin)
 {
   mbuf *bp;
@@ -415,7 +478,12 @@ mbuf *rlder_gentime(derb *db,time_t tin)
   return bp;
 }
 
-/* append rfc822 email address in ASCIIZ q to mbuf chain in db */
+/*! append rfc822 email address in ASCIIZ q to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param q ptr to ASCIIZ email string
+    \return NULL if error; new mbuf filled in with DER email string otherwise
+*/
 mbuf *rlder_rfc822Name(derb *db,char *q)
 {
   mbuf *bp;
@@ -434,7 +502,13 @@ mbuf *rlder_rfc822Name(derb *db,char *q)
   return bp;
 }
 
-/* append keyidentifier (q,n) to mbuf chain in db */
+/*! append keyidentifier (q,n) to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param q ptr to buffer with keyid
+    \param n length of buffer above
+    \return NULL if error; new mbuf filled in with DER keyidentifier otherwise
+*/
 mbuf *rlder_keyidentifier(derb *db,uint8_t *q,int n)
 {
   mbuf *bp;
@@ -451,7 +525,12 @@ mbuf *rlder_keyidentifier(derb *db,uint8_t *q,int n)
   return bp;
 }
 
-/* append ASCIIZ generalname str to mbuf chain in db */
+/*! append ASCIIZ generalname str to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param str ptr to ASCIIZ generalname
+    \return NULL if error; new mbuf filled in with DER general name otherwise
+*/
 mbuf *rlder_generalname(derb *db,char *str)
 {
   mbuf *bp;
@@ -470,7 +549,12 @@ mbuf *rlder_generalname(derb *db,char *str)
   return bp;
 }
 
-/* append ASCIIZ ia5 str to mbuf chain in db */
+/*! append ASCIIZ ia5 str to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param str ptr to buffer with ASCIIZ IA5 string
+    \return NULL if error; new mbuf filled in with DER IA5 string otherwise
+*/
 mbuf *rlder_ia5string(derb *db,char *str)
 {
   mbuf *bp;
@@ -494,7 +578,13 @@ mbuf *rlder_ia5string(derb *db,char *str)
  * Common DER Contructed items
  */
 
-/* append OBJID+PRINTABLE STRING combo to mbuf chain in db */
+/*! append OBJID+PRINTABLE STRING combo to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param obj ASCIIZ object ID
+    \param str ASCIIZ printable string
+    \return NULL if error; new mbuf filled in with DER element otherwise
+*/
 mbuf *rlder_pname(derb *db,char *obj,char *str)
 {
   mbuf *bp0,*bp1;
@@ -509,7 +599,14 @@ mbuf *rlder_pname(derb *db,char *obj,char *str)
   return bp0;
 }
 
-/* append objid type dgst to mbuf chain in db */
+/*! append objid type dgst to mbuf chain in db 
+
+    \param db work struct to accumulate DER elements
+    \param dgst  ASCIIZ digest name
+    \param param  Parameter
+    \param paramlen Parameter length
+    \return NULL if error; new mbuf filled in with DER element otherwise
+*/
 mbuf *rlder_dgstalg(derb *db,const char *dgst,uint8_t *param,int paramlen)
 {
   mbuf *bp0;
@@ -524,7 +621,13 @@ mbuf *rlder_dgstalg(derb *db,const char *dgst,uint8_t *param,int paramlen)
   return bp0;
 }
 
-/* append series of digest algorithms separated by , in dgsts by objid to mbuf chain in db */
+/*! append series of digest algorithms separated by , in dgsts by objid to
+    mbuf chain in db
+
+    \param db work struct to accumulate DER elements
+    \param dgsts comma separated ASCIIZ string of digest names
+    \return NULL if error; new mbuf filled in with DER elements otherwise
+*/
 mbuf *rlder_dgstalgs(derb *db,char *dgsts)
 {
   mbuf *bp0;
@@ -550,7 +653,11 @@ mbuf *rlder_dgstalgs(derb *db,char *dgsts)
  *  routine can fill in the final length.
  */
 
-/* append begining of SEQUENCE to mbuf chain */
+/*! append begining of SEQUENCE to mbuf chain 
+
+    \param db work struct to accumulate DER elements
+    \return NULL if error; new mbuf with DER sequence otherwise
+*/
 mbuf *rlder_start_sequence(derb *db)
 {
   mbuf *bp;
@@ -562,7 +669,12 @@ mbuf *rlder_start_sequence(derb *db)
   return bp;
 }
 
-/* fill in final length SEQUENCE */
+/*! fill in final length SEQUENCE 
+
+    \param db work struct to accumulate DER elements
+    \param bp ptr to mbuf of sequence header returned by above
+    \return NULL if error; new mbuf with DER sequence otherwise
+*/
 int rlder_end_sequence(derb *db,mbuf *bp)
 {
   int n;
@@ -572,7 +684,11 @@ int rlder_end_sequence(derb *db,mbuf *bp)
   return 0;
 }
 
-/* append begining of SET to mbuf chain */
+/*! append begining of SET to mbuf chain 
+
+    \param db work struct to accumulate DER elements
+    \return NULL if error; new mbuf with DER set otherwise
+*/
 mbuf *rlder_start_set(derb *db)
 {
   mbuf *bp;
@@ -584,7 +700,12 @@ mbuf *rlder_start_set(derb *db)
   return bp;
 }
 
-/* fill in final length SET */
+/*! fill in final length SET 
+
+    \param db work struct to accumulate DER elements
+    \param bp ptr to mbuf of set header returned by above
+    \return NULL if error; new mbuf with DER set otherwise
+*/
 int rlder_end_set(derb *db,mbuf *bp)
 {
   int n;
@@ -594,7 +715,12 @@ int rlder_end_set(derb *db,mbuf *bp)
   return 0;
 }
 
-/* append begining of CONTENT to mbuf chain */
+/*! append begining of CONTENT to mbuf chain 
+
+    \param db work struct to accumulate DER elements
+    \param i content type 
+    \return NULL if error; new mbuf with DER content otherwise
+*/
 mbuf *rlder_start_content(derb *db,int i)
 {
   mbuf *bp;
@@ -611,7 +737,12 @@ mbuf *rlder_start_content(derb *db,int i)
   return bp;
 }
 
-/* fill in final length CONTENT */
+/*! fill in final length CONTENT 
+
+    \param db work struct to accumulate DER elements
+    \param bp ptr to mbuf of content header returned by above
+    \return NULL if error; new mbuf with DER content otherwise
+*/
 int rlder_end_content(derb *db,mbuf *bp)
 {
   int n;
@@ -626,7 +757,12 @@ int rlder_end_content(derb *db,mbuf *bp)
  * rudimentary DER decoder
  */
  
-/* decode and print a string or dump bytes */
+/*! decode and print a string or dump bytes 
+
+    \param p ptr to DER struct to dump
+    \param hexdmp 1 if binary 0 if ascii
+    \return number of  bytes dumped
+*/
 static int dumpstr(uint8_t *p,int hexdmp)
 {
   int i,n,len;
@@ -663,7 +799,13 @@ static int dumpstr(uint8_t *p,int hexdmp)
   return (len + n);
 }
 
-/* walk a DER struct and print contents */
+/*! walk a DER struct and print contents - recursively
+
+    \param db work struct
+    \param p ptr to buffer with DER struct
+    \param n number of bytes in buffer
+    \return -1 if failed; 0 if ok.
+*/
 int rlder_derdec(derb *db,uint8_t *p,int n)
 {
   int len,i,fno;
@@ -797,7 +939,13 @@ int rlder_derdec(derb *db,uint8_t *p,int n)
  * Misc DER support
  */
  
-/* set the length in the begining of an mbuf buffer. sufficient space is pre-alloced by caller */
+/*! set the length in the begining of an mbuf buffer. sufficient space is
+    pre-alloced by caller
+
+    \param bp ptr to mbuf with a DER element
+    \param n length to set the DER element to
+    \return 0 if ok; -1 if error
+*/
 static int setlen(mbuf *bp,int n)
 {
   if(n < 0x80) {
@@ -816,8 +964,10 @@ static int setlen(mbuf *bp,int n)
   return 0;
 }
 
-/*
- * create a flat mbuf with the DER element starting at p0.
+/*! create a flat mbuf with the DER element starting at p0.
+
+   \param p0 pointer to DER element
+   \return NULL if error; otherwise new mbuf containing duplicate DER element
  */
 mbuf *rlder_dup_item(uint8_t *p0)
 {

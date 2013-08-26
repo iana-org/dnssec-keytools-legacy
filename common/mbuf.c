@@ -1,25 +1,19 @@
 /*
- * $Id: mbuf.c 324 2010-05-27 21:12:36Z jakob $
+ * $Id: mbuf.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2006, 2007 Richard H. Lamb (RHL). All rights reserved.
- *
- * Based on
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- * and other libraries Copyright (C) RHLamb 1995-2007
- *
- * Permission to use, copy, modify, and distribute this software for any
+ * Copyright (C) 2006 Richard H. Lamb ("RHL") slamb@xtcn.com
+ * 
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Author: RHLamb
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include <sys/stat.h>
@@ -29,6 +23,13 @@
 #include "mbuf.h"
 #include "logger.h"
 
+/*! Since we have litte recourse but to exit on a failed memory allocation,
+    wrap the allocation call with fatal exit should memory alloc fail.
+
+    \param n number of elements of size j
+    \param j size of each element
+    \return ptr to zeroed new buffer; otherwise does not return.
+ */
 static char *_mbuf_calloc(int n,int j)
 {
   char *p;
@@ -39,8 +40,11 @@ static char *_mbuf_calloc(int n,int j)
   return p;
 }
 
-/* return a zeroed n byte long mbuf
-   caller must call mbuf_free() */
+/*! return a zeroed n byte long mbuf caller must call mbuf_free() 
+
+    \param n size of mbuf
+    \return NULL if fail; ptr to new zeroed mbuf if ok
+ */
 mbuf *
 mbuf_alloc(int n)
 {
@@ -54,7 +58,10 @@ mbuf_alloc(int n)
   return bp;
 }
 
-/* free an mbuf */
+/*! free an mbuf by first writing pattern to space to try to catch bugs
+
+    \param bp ptr to mbuf to free
+ */
 void mbuf_free(mbuf *bp)
 {
   if(bp == NULL) return;
@@ -62,7 +69,11 @@ void mbuf_free(mbuf *bp)
   free(bp);
 }
 
-/* return the total length of an mbuf chain starting at bp0 */
+/*! return the total length of an mbuf chain starting at bp0 
+
+   \param bp0 ptr to mbuf to calculate the total chained length of.
+   \return -1 if failed; otherwise total number of bytes in this mbuf chain.
+*/
 int
 mbuf_len(mbuf *bp0)
 {
@@ -75,7 +86,11 @@ mbuf_len(mbuf *bp0)
   return n;
 }
 
-/* return a flat (single) duplicate of mbuf chain bp0 */
+/*! return a flat (single) duplicate of mbuf chain bp0. Does NOT free original
+
+    \param bp0 ptr to mbuf chain to duplicate.
+    \return NULL if failed; ptr to new duplicate single mbuf otherwise
+ */
 mbuf *
 mbuf_dup(mbuf *bp0)
 {
@@ -92,7 +107,11 @@ mbuf_dup(mbuf *bp0)
   return bp1;
 }
 
-/* return a flat (single) mbuf version of bp0 - freeing bp0 */
+/*! return a flat (single) mbuf version of bp0 - freeing bp0 
+
+    \param bp0 ptr to mbuf chain to duplicate
+    \return NULL if failed; ptr to new duplicate single mbuf otherwise
+ */
 mbuf *
 mbuf_flat(mbuf *bp0)
 {
@@ -112,7 +131,12 @@ mbuf_flat(mbuf *bp0)
   return bp1;
 }
 
-/* output contents of mbuf chain bp0 to a open file referenced by fp */
+/*! output contents of mbuf chain bp0 to a open file referenced by fp 
+
+    \param bp0 ptr to mbuf chain to binary dump to file
+    \param fp open file ptr to write binary data to
+    \return NULL if failed; number of bytes written otherwise
+ */
 int
 mbuf_out(mbuf *bp0,FILE *fp)
 {
@@ -128,7 +152,12 @@ mbuf_out(mbuf *bp0,FILE *fp)
   return j;
 }
 
-/* return a mbuf with contents (p,n) */
+/*! return a mbuf with contents (p,n) 
+
+    \param p ptr to buffer with data to be copied to the new mbuf
+    \param n number of bytes from p to copy to new mbuf
+    \return NULL if failed; otherwise ptr to new mbuf with a copy of n bytes from p
+ */
 mbuf *
 buf2mbuf(uint8_t *p,int n)
 {
@@ -140,7 +169,11 @@ buf2mbuf(uint8_t *p,int n)
   return bp;
 }
 
-/* return an mbuf filled with the contents fo fname */
+/*! return an mbuf filled with the contents fo fname 
+
+    \param fname filename whose binary contents will be loaded into a mbuf
+    \return NULL if failed; mbuf filled with contents if ok.
+ */
 mbuf *
 file2mbuf(char *fname)
 {

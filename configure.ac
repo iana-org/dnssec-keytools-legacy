@@ -55,6 +55,10 @@ CHECK_OPENSC
 
 AC_PATH_PROG(OPENSSL, openssl)
 
+DX_PDF_FEATURE(OFF)
+DX_PS_FEATURE(OFF)
+DX_INIT_DOXYGEN(${PACKAGE_NAME}, [Doxyfile], [doxygen-doc])
+
 AC_CONFIG_FILES([
 	Makefile
 	keybackup/Makefile
@@ -63,6 +67,7 @@ AC_CONFIG_FILES([
 	changepin/Makefile
 	checks/Makefile
 	utils/Makefile
+	Doxyfile
 ])
 
 if test -n "${SOFTHSM_PROVIDER}"; then

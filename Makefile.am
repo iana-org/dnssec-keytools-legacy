@@ -12,6 +12,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 EXTRA_DIST = \
+ 	$(DX_CONFIG) \
 	$(srcdir)/common/*.c \
 	$(srcdir)/common/*.h \
 	$(srcdir)/common/cryptoki/*.h \
@@ -19,3 +20,9 @@ EXTRA_DIST = \
 	$(srcdir)/compat/*.h
 
 SUBDIRS = keybackup kskgen ksrsigner changepin checks utils
+
+include doxygen.am
+
+#doxygen:
+#	INPUT=. PROJECT=$(PACKAGE_NAME) VERSION=$(VERSION) \
+#	doxygen $(srcdir)/keytools.doxygen

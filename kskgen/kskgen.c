@@ -1,28 +1,21 @@
 /*
- * $Id: kskgen.c 415 2010-06-08 23:56:57Z lamb $
+ * $Id: kskgen.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2009 Internet Corporation for Assigned Names and Numbers (ICANN)
- *                            and
- * Copyright (C) 2006, 2007 Richard H Lamb (RHL)
- * 
- * Permission to use, copy, modify, and distribute this software for any
+ * Copyright (c) 2009 Internet Corporation for Assigned Names ("ICANN")
+ *
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN+RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN+RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Based on
- * "IANA DNSSEC Signed Root Testbed Project,Copyright (C) ICANN 2007,2008,2009"
- * and
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- *
- * Author: RHLamb
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
  
 #include "config.h"
@@ -36,7 +29,7 @@
 #include "pkcs11_dnssec.h"
 #include "compat.h"
 
-#define LOGDIR "."
+#define LOGDIR "."  /*!< Directory for logfiles */
 
 static const char *progname = "kskgen";
 
@@ -46,20 +39,22 @@ static int setkeyalg(kcrecord *dc,int alg);
 static mbuf *pkcs1padrsasign(int htype,uint8_t *hash,int hashlen,kcrecord *dc);
 
 /***************************************************************
- * Generates a KSK and associated publication material
- *
- * Usage: kskgen<CR> Generates a new KSK in the HSM and files below.
- *        kskgen ksk-label<CR> Creates the files below from the KSK 
- *        CKA_LABEL'd ksk-label.
- *
- * output: K12345.csr in binary DER
- * where: 
- *  "12345" is the a random unique label of the newly generated key
- *  K12345.csr is a simple CSR (no attributes or extensions)
- *
- * To test:
- *  openssl req -inform der -in K12345.csr -noout -text -verify
- *
+ *! Generates a KSK and associated publication material
+ *!
+ *! Usage: kskgen<CR> Generates a new KSK in the HSM and files below.
+ *!        kskgen ksk-label<CR> Creates the files below from the KSK 
+ *!        CKA_LABEL'd ksk-label.
+ *!
+ *! output: K12345.csr in binary DER
+ *! where: 
+ *!  "12345" is the a random unique label of the newly generated key
+ *!  K12345.csr is a simple CSR (no attributes or extensions)
+ *!
+ *! To test:
+ *!  openssl req -inform der -in K12345.csr -noout -text -verify
+ *!
+\param argv[1] if specified, it is the pkcs11 CKA_LABEL for the HSM key to generate the CSR from.  If not specified, a new key is generated and used to create the CSR.
+\return 0 on success; -1 on error.
  ***************************************************************/
 int main(int argc,char *argv[])
 {
@@ -174,6 +169,8 @@ int main(int argc,char *argv[])
   rlder_pname(db,"organizationalUnitName",DN_OU);
   /* commonName: text + current time */
   sec2ztime(time(NULL), ztimestamp);
+  /* FIXME: timestamp should be set to the time when the key was generated,
+            not when the CSR was generated. Not sure how to fix this */
   snprintf(lbuf,sizeof(lbuf),"Root Zone KSK %s", ztimestamp);
   dn_cn = strdup(lbuf);
   rlder_pname(db,"commonName",dn_cn);
@@ -183,6 +180,8 @@ int main(int argc,char *argv[])
   rlder_pname(db,OID_DNS,dn_misc);
   rlder_end_sequence(db,bp);
   dc->distinguishedname = mbuf_flat(bp);
+  /* FIXME: do not include email address at all (the specification,
+     draft-icann-dnssec-trust-anchor, says we should not include) */
   dc->email = DN_EMAIL;
 
   /* 
@@ -224,14 +223,10 @@ int main(int argc,char *argv[])
 }
 
 /*
- * Based on Standalone PKCS7 Signature RFC3161 Timestamp generator 
- *   /w DER encoder decoder
- * For Netwitness division of DC Communications Inc.
- * Copyright Richard H Lamb 2006,2007
- *  slamb@xtcn.com
+ *! return an mbuf containing a der representation of a CSR formed from dc 
+\param dc pointer to key structure to use for CSR, including pkcs11/HSM info
+\return NULL if failed; ptr to mbuf containing CSR otherwise
  */
-
-/* return an mbuf containing a der representation of a CSR formed from dc */
 static mbuf *create_csr(kcrecord *dc)
 {
   mbuf *bp,*bp0,*bp1,*bp2;
@@ -286,12 +281,17 @@ static mbuf *create_csr(kcrecord *dc)
 }
 
 /*******************************************************************
- * Misc support
+ *! Misc support
  *******************************************************************/
 
 /*
- * DNSSEC, CERTS, and S/MIME all use this same pkcs1 
- * digital signature scheme. This meets FIPS 186-3
+ *! DNSSEC, CERTS, and S/MIME all use this same pkcs1 
+ *! digital signature scheme. This meets FIPS 186-3
+\param htype  Hash type e.g., HASH_SHA1 or HASH_SHA256
+\param hash   ptr to buffer containing hash
+\param hashlen  length of above hash in bytes
+\param dc ptr to key record used to digitally sign the hash
+\return NULL if error; ptr to allocated mbuf containing signed hash if ok
  */
 static mbuf *pkcs1padrsasign(int htype,uint8_t *hash,int hashlen,kcrecord *dc)
 {
@@ -319,7 +319,12 @@ static mbuf *pkcs1padrsasign(int htype,uint8_t *hash,int hashlen,kcrecord *dc)
 
   return bp;
 }
-/* shortcut to setting X.509 parameters */
+/* 
+ *! shortcut to setting X.509 parameters 
+\param dc ptr to key record to fill in with x509 hash/alg info
+\param alg dnssec algortihm type
+\return
+ */
 static int setkeyalg(kcrecord *dc,int alg)
 {
   switch(alg) {
@@ -341,7 +346,10 @@ static int setkeyalg(kcrecord *dc,int alg)
   return 0;
 }
 
-/* just for fillinkinfo below */
+/* 
+ *! just for fillinkinfo below 
+\param dc ptr to key record to free
+ */
 static void kcrecord_free(kcrecord *dc)
 {
   if(dc->ds2bp) mbuf_free(dc->ds2bp);
@@ -351,7 +359,11 @@ static void kcrecord_free(kcrecord *dc)
   free(dc);
 }
 
-/* called to fill in dnssec info - was important for keytag to be used for CKA_LABEL but team agreed to never do this in light of AEP Keyper implementation.  So no is called post PKCS11 keygen. Could use callbacks but keep it simple. */
+/* 
+ *! called to fill in dnssec info - was important for keytag to be used for CKA_LABEL but team agreed to never do this in light of AEP Keyper implementation.  So now is called post PKCS11 keygen. Could use callbacks but keep it simple. 
+\param pk void ptr to PKCS11 structure for an HSM key.
+\return NULL if failed; otherwise newlly crated key record associated with pk.
+*/
 static kcrecord *fillinkinfo(void *pk)
 {
   derb *db,_db;

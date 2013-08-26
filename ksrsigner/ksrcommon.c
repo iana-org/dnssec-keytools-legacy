@@ -1,25 +1,21 @@
 /*
- * $Id: ksrcommon.c 390 2010-06-01 16:50:02Z jakob $
+ * $Id: ksrcommon.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2007,2008 Internet Corporation for Assigned Names
- *                         and Numbers ("ICANN")
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
  *
- * From the "IANA DNSSEC Signed Root Testbed Project 2007, 2008, 2009"
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Original author: RHLamb 2008,2009,2010
- * Fixes and Improvements by Jakob Schlyter and Stephan Morris
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "util.h"
@@ -46,6 +42,14 @@ static int fillinpinfo(krecord *kr);
 
 #define DBUFSIZE 2048
 
+/*! Local zeroed memory allocation wrapper.
+
+    No real recovery from lack of memory.  Better to just exit.
+
+    \param n elements
+    \param j  of size j bytes each
+    \return char ptr to cleared allocated buffer
+ */
 static char *ksr_calloc(int n,int j)
 {
   char *p;
@@ -56,6 +60,12 @@ static char *ksr_calloc(int n,int j)
   return p;
 }
 
+/*! Standalone lightweight basic recursive XML parser for KSR and SKR
+
+    \param tp tag string to operate on.   Initially empty str "".
+    \param xs I/O structure that also contains open imput file ptr "fin" 
+    \return 0 on success. -1 for error
+ */
 int xmlparse(char *tp,xmlstate *xs)
 {
   int i,k,sttg,otag;
@@ -435,6 +445,12 @@ int xmlparse(char *tp,xmlstate *xs)
   return 0;
 }
 
+/*! parse, copy into new buffer, and return attributes in an XML tag
+
+    \param tp the full XML tag
+    \param str attribute label to search for inside tag
+    \return NULL on error or ptr to new buffer with attribute if found
+ */
 static char *gattr(char *tp,char *str)
 {
   char *q,*q2;
@@ -461,7 +477,11 @@ static char *gattr(char *tp,char *str)
   return NULL;
 }
 
+/*! display series of internal request/response structure
 
+    \param rqrs array of pointers to internal request/response structures
+    \param cnt number of structures to display
+ */
 void display_reqresp(reqresp *rqrs[],int cnt)
 {
   char lbuf[MAXPATHLEN];
@@ -517,6 +537,10 @@ void display_reqresp(reqresp *rqrs[],int cnt)
 }
 
 #if 0
+/*! dump detailed contents of request/response structure
+
+    \param rq pointer to internal request/response structure
+ */
 static void dump_requestresponse(reqresp *rq)
 {
   {
@@ -537,6 +561,9 @@ static void dump_requestresponse(reqresp *rq)
 }
 #endif /* 0 */
 
+/*! Free internal request/response structure and contents
+    \param rq pointer to parsed internal structure
+ */
 void free_requestresponse(reqresp *rq)
 {
   {
@@ -572,6 +599,9 @@ void free_requestresponse(reqresp *rq)
   free(rq);
 }
 
+/*! Free internal key record structure and contents
+    \param s internal key record structure
+ */
 void free_keyrecord(krecord *s)
 {
   if(s == NULL) return;
@@ -584,6 +614,10 @@ void free_keyrecord(krecord *s)
   if(s->pkcb) pkcs11_free_pkkeycb(s->pkcb);
   free(s);
 }
+/*! Free internal signature structure and contents
+
+    \param s internal signature structure
+ */
 static void free_signature(signature *s)
 {
   if(s->keyIdentifier) free(s->keyIdentifier);
@@ -592,11 +626,17 @@ static void free_signature(signature *s)
   if(s->SignatureData) free(s->SignatureData);
   free(s);
 }
+/*! Free internal signer structure and contents
+    \param s internal signer structure
+ */
 static void free_signer(signer *s)
 {
   if(s->keyIdentifier) free(s->keyIdentifier);
   free(s);
 }
+/*! Free internal response policy structure and contents
+    \param s internal response policy structure
+ */
 static void free_responsepolicy(responsepolicy *r)
 {
   if(r->PublishSafety) free(r->PublishSafety);
@@ -608,7 +648,13 @@ static void free_responsepolicy(responsepolicy *r)
   if(r->sigalg) free(r->sigalg);
   free(r);
 }
+/*! Check if request is valid (e.g., algorithms, protocols, validity period,
+    proof of private key ownership, etc..)
 
+    \param rq pointer to parsed request
+    \param ksrdomain domain name associated with this request
+    \return 0 but global variable ksrinvalid is incremented for each error
+*/
 int check_requestbundle(reqresp *rq,char *ksrdomain)
 {
   int keycnt;
@@ -677,8 +723,8 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
   }
 
   if(rq->Expiration > maxexpiration) {
-    logger_warning("Requests signature expiration exceeds %d months. Limiting!",
-      (T_VLIMIT+1/30));
+    logger_warning("Requests signature expiration exceeds %d days. Limiting!",
+      (T_VLIMIT+1));
     rq->Expiration = maxexpiration;
     ksrinvalid++;
   }
@@ -750,7 +796,12 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
   return 0;
 }
 
-/* if for REVOKE bit only, clearly should just backout and reinsert the REVOKE bit w/o recalc */
+/*! For REVOKE bit only, clearly should just backout and reinsert 
+    the REVOKE bit but recalculating was easier.
+
+    \param kr  key record to recalculate keytag over
+    \return 16-bit keytag
+*/
 static uint16_t updatekeytag(krecord *kr)
 {
   uint8_t *q,lbuf[4098];
@@ -772,7 +823,12 @@ static uint16_t updatekeytag(krecord *kr)
   q += n;
   return dnssec_keytag(lbuf,(int)(q-lbuf));
 }
+/*! Sign the request
 
+    \param xs struct containing parsed validated request and signing key data
+    \param ftmp file pointer to write signed response in XML format to.
+    \return -1 if error; 0 if ok
+ */
 int signem(FILE *ftmp,xmlstate *xs)
 {
   krecord *keys[MAX_KEYS];
@@ -993,7 +1049,13 @@ int signem(FILE *ftmp,xmlstate *xs)
   if(debug) logger_debug("=====");
   return ret;
 }
+/*! Check response has valid keys and prove it was generated from 
+    private key inside HSM.  This is used validate the prior SKR 
+    in the trust chain.
 
+    \param rq pointer to request structure
+    \return -1 if error; 0 if ok.  Also increments global ksrinvalid on each error
+ */
 int check_responsebundle(reqresp *rq)
 {
   int any;
@@ -1079,7 +1141,11 @@ int check_responsebundle(reqresp *rq)
   if(debug) logger_debug("=====");
   return -1;
 }
+/*! Function used by qsort to order RRSIGs by expiration date
 
+    \param a,b  void cast request/response pointers
+    \return -1 if expiration time a < b else return 1
+ */
 int expmaxcmpr(const void *a,const void *b)
 {
   reqresp * const *d1 = a;
@@ -1091,6 +1157,11 @@ int expmaxcmpr(const void *a,const void *b)
   return 1;
 }
 
+/*! Convert XML time format to time() seconds format
+
+    \param s string with time struct
+    \return seconds in time() equivalent
+ */
 static time_t ztime2sec(char *s)
 {
   /* 2009-06-01T00:00:00Z or 2009-06-01T00:00:00.*+00:00 */
@@ -1154,8 +1225,10 @@ static time_t ztime2sec(char *s)
   return 0;
 }
 
-/*
- * Fill in general purpose info for a non-HSM key
+/*! Fill in general purpose info for a non-HSM key
+
+    \param kr partially filled in key record structure
+    \return 0 if success
  */
 static int fillinpinfo(krecord *kr)
 {
@@ -1189,6 +1262,11 @@ static int fillinpinfo(krecord *kr)
  * DNSSEC/DNS support
  ******************************************************************/
 
+/*! Return number of levels in domain name
+
+    \param dn string containing domain name
+    \return number of '.'s
+*/
 int dndepth(char *dn)
 {
   int n,m;
@@ -1206,6 +1284,11 @@ int dndepth(char *dn)
   }
   return m;
 }
+/*! Return hash corresponding to DNSSEC signing algorithm type
+
+    \param alg DNSSEC signing algorithm number
+    \return internal hash type or -1 if unsupported algorithm
+*/
 int algtohash(int alg)
 {
   switch(alg) {

@@ -1,21 +1,21 @@
 /*
- * $Id: logger.c 359 2010-05-28 21:43:18Z jakob $
+ * $Id: logger.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2010 Internet Corporation for Assigned Names
- *                    and Numbers (ICANN)
+ * Copyright (c) 2010 Internet Corporation for Assigned Names ("ICANN")
+ * 
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN+RHL DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN+RHL BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -43,6 +43,10 @@ static const char *logfile_timeformat = "%Y%m%d-%H%M%S";
 static const char *logentry_timeformat = "%Y-%m-%dT%H:%M:%SZ";
 static char logfile_fname[MAXPATHLEN];
 
+/*! emit fata error message with decoded error number and exit
+
+    \param message optional message string to incorporate into display
+ */
 static void
 internal_fatal(const char *message)
 {
@@ -59,6 +63,11 @@ internal_fatal(const char *message)
   exit(-1);
 }
 
+/*! convert numeric priority into string
+
+    \param pri numeric priority
+    \return ASCIIZ representation or pri
+ */
 static const char *pri2str(int pri)
 {
   if (pri == LOG_EMERG)   return "emergency";
@@ -73,6 +82,7 @@ static const char *pri2str(int pri)
   return "unknown";
 }
 
+/*! routine to call on exit */
 static void logger_atexit()
 {
   const char *separator = "**********";
@@ -83,14 +93,17 @@ static void logger_atexit()
 }
 
 
-/*
- * Initialize logger
- *
- * Log output will be written to a file beginning with [basename]
- * in [dir]. Output filename will include a timestamp.
- * The [flags] are used to select if the log output is also
- * mirrored on STDOUT and, if so, those log entries are prepended with a
- * a timestamp.
+/*! Initialize logger
+
+    Log output will be written to a file beginning with [basename] in [dir].
+    Output filename will include a timestamp. The [flags] are used to select
+    if the log output is also mirrored on STDOUT and, if so, those log entries
+    are prepended with a a timestamp.
+
+   \param basename logfile name prefix
+   \param dir      directory where logfile is written
+   \param flags    flags used to control STDOUT usage
+   \return         -1 if error; 0 if success
  */
 int logger_init(const char *basename, const char *dir, int flags)
 {
@@ -125,27 +138,38 @@ int logger_init(const char *basename, const char *dir, int flags)
   return 0;
 }
 
+/*! close logfile */
 void logger_close()
 {
   if (log_fp) fclose(log_fp);
   log_initialized = 0; 
 }
 
+/*! enable STDOUT logging */
 void logger_stdout_enable()
 {
   log_flags |= LOG_STDOUT;
 }
 
+/*! disable STDOUT logging */
 void logger_stdout_disable()
 {
   log_flags &= ~LOG_STDOUT;  
 }
 
+/*! return current logfile name 
+    \return log file name
+*/
 const char *logger_filename()
 {
   return logfile_fname;
 }
 
+/*! write message to logfile
+    \param pri priority
+    \param format "printf" style format string
+    \param ap arguments for format
+ */
 static void logger_vmessage(int pri, const char *format, va_list ap)
 {
   static char tstamp[TIMESTAMP_LENGTH];
@@ -189,8 +213,9 @@ static void logger_vmessage(int pri, const char *format, va_list ap)
   if(fflush(log_fp)) internal_fatal(NULL);
 }
 
-/*
- * syslog(3)-like logger
+/*! syslog(3)-like logger
+    \param pri priority
+    \param format "printf" style format followed by corresponding arguments
  */
 void logger_message(int pri, const char *format, ...)
 {
@@ -201,8 +226,8 @@ void logger_message(int pri, const char *format, ...)
   va_end(ap);
 }
 
-/*
- * syslog(3)-like logger with exit(-1)
+/*! syslog(3)-like logger with exit(-1)
+    \param format "printf" style format followed by corresponding arguments
  */
 void logger_fatal(const char *format, ...)
 {
@@ -215,6 +240,9 @@ void logger_fatal(const char *format, ...)
   exit(-1);
 }
 
+/*! log with debug priority
+    \param format "printf" style format followed by corresponding arguments
+*/
 void logger_debug(const char *format, ...)
 {
   va_list ap;
@@ -224,6 +252,9 @@ void logger_debug(const char *format, ...)
   va_end(ap);
 }
 
+/*! log with info priority
+    \param format "printf" style format followed by corresponding arguments
+*/
 void logger_info(const char *format, ...)
 {
   va_list ap;
@@ -233,6 +264,9 @@ void logger_info(const char *format, ...)
   va_end(ap);
 }
 
+/*! log with notice priority
+    \param format "printf" style format followed by corresponding arguments
+*/
 void logger_notice(const char *format, ...)
 {
   va_list ap;
@@ -242,6 +276,9 @@ void logger_notice(const char *format, ...)
   va_end(ap);
 }
 
+/*! log with warning priority
+    \param format "printf" style format followed by corresponding arguments
+*/
 void logger_warning(const char *format, ...)
 {
   va_list ap;
@@ -251,6 +288,9 @@ void logger_warning(const char *format, ...)
   va_end(ap);
 }
 
+/*! log with error priority
+    \param format "printf" style format followed by corresponding arguments
+*/
 void logger_error(const char *format, ...)
 {
   va_list ap;
@@ -260,9 +300,9 @@ void logger_error(const char *format, ...)
   va_end(ap);
 }
 
-
-/*
- * Dump program startup message
+/*! Dump program startup message
+    \param argc number of arguments to log
+    \param argv array of pointers to arguments
  */
 void logger_hello(int argc, char *argv[])
 {
@@ -289,7 +329,10 @@ void logger_hello(int argc, char *argv[])
   logger_message(LOG_INFO, "%s", lbuf);
 }
 
-/* Legacy logger, will be removed eventually */
+/*! Legacy logger, will be removed eventually 
+    \param pri logging priority as per syslog
+    \param format "printf" style fomat string followed by arguments
+*/
 void myx_syslog(int pri,const char *format, ...)
 {
   static char ts[TIMESTAMP_LENGTH];

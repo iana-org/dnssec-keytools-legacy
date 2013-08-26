@@ -1,41 +1,21 @@
 /*
- * $Id: pkcs11_dnssec.c 412 2010-06-08 23:44:44Z lamb $
+ * $Id: pkcs11_dnssec.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2010 Internet Corporation for Assigned Names
+ * Copyright (c) 2010 Internet Corporation for Assigned Names ("ICANN")
+ * 
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Based on
- * "IANA DNSSEC Signed Root Testbed Project,Copyright (C) ICANN 2007,2008,2009"
- * and
- * "Netwitness.org/net Standalone PKCS#7 Signer,Copyright (C) RHLamb 2006,2007"
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * PKCS11 Routines
- *  Draws from PKCS11 standard, examples, and styles from 
- *   ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-11/v2-20/pkcs-11v2-20.pdf
- *
- * Original author: Richard Lamb
- * Fixes and Improvements by Jakob Schlyter and Stephan Morris
- *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -49,6 +29,11 @@
 #include "pkcs11_dnssec.h"
 #include "base32.h"
 
+/*! malloc wrapper to exit on allocation failure
+
+    \param n number of bytes to allocate
+    \return char pointer to allocated buffer
+ */
 static char *pkcs11_malloc(int n)
 {
   char *p;
@@ -58,6 +43,13 @@ static char *pkcs11_malloc(int n)
   }
   return p;
 }
+
+/*! calloc wrapper to exit on allocation failure.
+
+    \param n number of elements to allocate
+    \param j size of elements to allocate
+    \return char pointer to allocated zeroed buffer
+ */
 static char *pkcs11_calloc(int n,int j)
 {
   char *p;
@@ -68,6 +60,11 @@ static char *pkcs11_calloc(int n,int j)
   return p;
 }
 
+/*! return key bit length
+
+    \param vkr void cast pointer to pkcs11 key stuct for key in question
+    \return -1 if error or key bit length
+*/
 int pkcs11_bits(void *vkr)
 {
   if(vkr == NULL) {
@@ -76,6 +73,12 @@ int pkcs11_bits(void *vkr)
   }
   return ((pkkeycb *)vkr)->bits;
 }
+
+/*! return mbuf with key modulus
+
+    \param vkr void cast pointer to pkcs11 key stuct for key in question
+    \return NULL if error or pointer to mbuf with modulus
+*/
 mbuf *pkcs11_modulus(void *vkr)
 {
   if(vkr == NULL) {
@@ -84,6 +87,12 @@ mbuf *pkcs11_modulus(void *vkr)
   }
   return ((pkkeycb *)vkr)->modulus;
 }
+
+/*! return mbuf with public key exponent
+
+    \param vkr void cast pointer to pkcs11 key stuct for key in question
+    \return NULL if error or pointer to mbuf with public exponent
+*/
 mbuf *pkcs11_pubexp(void *vkr)
 {
   if(vkr == NULL) {
@@ -92,6 +101,12 @@ mbuf *pkcs11_pubexp(void *vkr)
   }
   return ((pkkeycb *)vkr)->pubexp;
 }
+
+/*! return mbuf for CKA_LABEL for vkr key 
+
+    \param vkr void cast pointer to pkcs11 key stuct for key in question
+    \return NULL if error or pointer to mbuf with CKA_LABEL
+ */
 mbuf *pkcs11_label(void *vkr)
 {
   if(vkr == NULL) {
@@ -100,11 +115,22 @@ mbuf *pkcs11_label(void *vkr)
   }
   return ((pkkeycb *)vkr)->label;
 }
+
+/*! check to see if we have access to the private key in this key strust
+
+    \param vkr void cast pointer to pkcs11 key struct for key in question
+    \return 1 if have private key; 0 if not
+ */
 int pkcs11_have_private_key(void *vkr)
 {
   if( ((pkkeycb *)vkr)->hkp ) return 1;
   return 0;
 }
+
+/*! free pkcs11 key struct
+
+    \param vkr void cast pointer to pkcs11 key struct to free
+ */
 void pkcs11_free_pkkeycb(void *vkr)
 {
   pkkeycb *pk;
@@ -133,15 +159,18 @@ static int pkcs11init;
 
 static char *current_hsmconfig=NULL;
 
-/*
- * read fname and set environment variables for this process accordingly.
- * input: fname file /w env vars. e.g.
- *   KEYPER_LIBRARY_PATH=$HOME/dnssec/ksr/AEP
- *   LD_LIBRARY_PATH=$KEYPER_LIBRARY_PATH
- *   PKCS11_LIBRARY_PATH=$KEYPER_LIBRARY_PATH/pkcs11.GCC4.0.2.so.4.07
- *
- * output: nothing
- * return: 0 success, else failed
+/*! read fname and set environment variables for this process accordingly.
+
+    input: fname file /w env vars. e.g.
+      KEYPER_LIBRARY_PATH=$HOME/dnssec/ksr/AEP
+      LD_LIBRARY_PATH=$KEYPER_LIBRARY_PATH
+      PKCS11_LIBRARY_PATH=$KEYPER_LIBRARY_PATH/pkcs11.GCC4.0.2.so.4.07
+    
+    output: nothing
+    return: 0 success, else failed
+
+    \param fname name of HSM configuration file (e.g., aep.hsmconfig) to open
+    \return -1 if failed; 0 if success
  */
 static int setenvvars(char *fname)
 {
@@ -210,7 +239,13 @@ static int setenvvars(char *fname)
   fclose(fp);
   return 0;
 }
-/* check and set previously verified environment variables */
+
+/*! check and set previously verified environment variables.
+
+    Important when dealing with multiple HSMs from different vendors.
+
+    \param pk pointer to pkcs11 HSM slot structure
+*/
 static void checkandsetenv(pkcs11cb *pk)
 {
   if(pk->hsmconfig &&
@@ -220,6 +255,14 @@ static void checkandsetenv(pkcs11cb *pk)
   }
 }
 
+/*! HSM subsystem initialization routine
+
+    Learns and draws in as much information about the HSM(s) and slots as
+    possible.
+
+    \param otherdir If non-null then path to other directory to scan for HSM configuration files in addition to the current directory.  config files in current directory take precedence.
+    \return -1 if error; 0 if success.
+ */
 int pkcs11_init(char *otherdir)
 {
   char *p,fname[MAXPATHLEN];
@@ -404,7 +447,14 @@ int pkcs11_init(char *otherdir)
   pkcs11init = 1;
   return 0;
 }
-/* if vpk is NULL, all HSMs are closed.  Otherwise only the HSM specified by vpk is closed */
+
+/*! close PKCS11 library
+
+    if vpk is NULL, all HSMs are closed. Otherwise only the HSM specified by
+    vpk is closed.
+
+    \param vpk void cast pointer to pkcs11 key struct to close.  If NULL, close all.
+*/
 void pkcs11_close(void *vpk)
 {
   pkcs11cb *pk2;
@@ -436,7 +486,7 @@ void pkcs11_close(void *vpk)
     for(i=0;i<pklistcnt;i++) {
       if(pklist[i].hLib == pk2->hLib) cnt++;
     }
-    if(cnt == 1) { /* only un-load lib on last one */
+    if(cnt == 1) { /*!< only un-load lib on last one */
       if((rv=pfl->C_Finalize(NULL)) != CKR_OK) {
         logger_error("pkcs11: %s C_Finalize: %s",__func__,pkcs11_ret_str(rv));
       }
@@ -453,6 +503,10 @@ void pkcs11_close(void *vpk)
   if(i == pklistcnt) pkcs11init = 0;
 }
 
+/*! log in to HSM slot referrenced by pk
+    \param pk pointer to HSM slot struct to log in to
+    \return -1 if failed; 0 if success
+ */
 static int pkcs11_login(pkcs11cb *pk)
 {
   int rv;
@@ -513,7 +567,12 @@ static int pkcs11_login(pkcs11cb *pk)
 
   return 0;
 }
+
 #if 0
+/* log out of HSM slot referrenced by pk
+   \param pk pointer to HSM slot struct
+   \return 0
+*/
 static int pkcs11_logout(pkcs11cb *pk)
 {
   int rv;
@@ -536,7 +595,7 @@ static int pkcs11_logout(pkcs11cb *pk)
 
 #if 0
 /*
- * return the size of the pkcs11 control block
+\return the size of the pkcs11 control block
  */
 int pkcs11_cbsize()
 {
@@ -544,10 +603,17 @@ int pkcs11_cbsize()
 }
 #endif /* 0 */
 
-/*
- * Verify the signature in "sig/siglen" over "data/datalen" with 
- * public key in "kr".
- * Returns 0 if successful.
+/*! Verify the signature in "sig/siglen" over "data/datalen" with 
+    public key described by modulus and pubexp using PKCS11 calls.
+    Returns 0 if successful.
+
+    \param modulus mbuf containing key modulus
+    \param pubexp mbuf containing key public exponent
+    \param sig pointer to buffer containing signature of data
+    \param siglen length of signature
+    \param data pointer to buffer containing data
+    \param datalen length of data
+    \return -1 if failed; 0 if validated
  */
 int pkcs11_hsmverify(mbuf *modulus,mbuf *pubexp,uint8_t *sig,int siglen,uint8_t *data,int datalen)
 {
@@ -615,12 +681,22 @@ int pkcs11_hsmverify(mbuf *modulus,mbuf *pubexp,uint8_t *sig,int siglen,uint8_t 
 
   return 0;
 }
-/*
- * Scans ALL HSM's found in pkcs11_init() for a key matching 
- * non-NULL "label,id,mod,exp" and fills up to "kmax" elements 
- * in "dc[]" with fresh structures including private key handles.
- * 
- * Note: assumes "id" is ASCIIZ.
+
+/*! find public key
+
+    Scans ALL HSM's found in pkcs11_init() for a key matching 
+    non-NULL "label,id,mod,exp" and fills up to "kmax" elements 
+    in "dc[]" with fresh structures including private key handles.
+    
+    Note: assumes "id" is ASCIIZ.
+
+    \param label NULL or ASCIIZ CKA_LABEL to search for
+    \param id NULL or ASCIIZ CKA_ID to search for
+    \param mod NULL or mbuf with modulus to search for
+    \param exp NULL or mbuf with public exponent to search for
+    \param vdc array of kmax void cast pkcs11 key pointers to fill in 
+    \param kmax size of vdc pointer array
+    \return -1 on error; number of vdc elements filled in if success
  */
 int pkcs11_getpub(char *label,char *id,mbuf *mod,mbuf *exp,void *vdc[],int kmax)
 {
@@ -796,10 +872,17 @@ int pkcs11_getpub(char *label,char *id,mbuf *mod,mbuf *exp,void *vdc[],int kmax)
   return kcnt;
 }
 
-/*
- * Raw (CKM_RSA_X_509) sign the contents of "data/datalen" with 
- * the private key hkp in "kr" returning the result in sout/slen.
- * Return 0 if success.
+/*! Raw (CKM_RSA_X_509) sign the contents of "data/datalen" with 
+    the private key hkp in "kr" returning the result in sout/slen.
+    Return 0 if success.
+
+    \param vkr void casted pointer to key struct to be used for signing
+    \param data pointer to data to be signed
+    \param datalen length of data
+    \param sout pointer to output buffer for signed result
+    \param slen on call:pointer to int containing length of output buffer
+                on return:int is filled in with length of result
+    \return -1 if error; 0 if success
  */
 int pkcs11_rsasignit2(void *vkr,uint8_t *data,int datalen,uint8_t *sout,int *slen)
 {
@@ -841,12 +924,16 @@ int pkcs11_rsasignit2(void *vkr,uint8_t *data,int datalen,uint8_t *sout,int *sle
   return 0;
 }
 
-/*
- * Return the CKM_RSA_PKCS signed the contents of "bp" with the 
- * private key "dc->hkp" as a new mbuf.  OR NULL is error.
- * Notes:
- *  For smartcards "label" should be null as the pkcs11 library may not
- *  match them properly.
+/*! Return the CKM_RSA_PKCS signed the contents of "bp" with the 
+    private key "dc->hkp" as a new mbuf.  OR NULL is error.
+
+   Notes:
+    For smartcards "label" should be null as the pkcs11 library may not
+    match them properly.
+
+   \param bp pointer to mbuf with contents to sign
+   \param vdc void casted pointer to pkcs11 key struct of key to sign with
+   \return NULL if error; new mbuf with signed result otherwise
  */
 mbuf *pkcs11_pkcssign(mbuf *bp,void *vdc)
 {
@@ -897,9 +984,12 @@ mbuf *pkcs11_pkcssign(mbuf *bp,void *vdc)
   return bpo;
 }
 
-/*
- * Return a fresh mbuf filled with the DER encoded certificate matching the
- * non-NULL label and id fields in "dc".
+/*! Return a fresh mbuf filled with the DER encoded certificate matching the
+    non-NULL label and id fields in "dc".
+
+    \param vdc void casted pkcs11 key struct with HSM slot and CKA_LABEL
+           and/or CKA_ID data to search the HSM for a matching certificate
+    \return NULL if error; a new mbuf with DER encoded certificate otherwise
  */
 mbuf *pkcs11_getcert(void *vdc)
 {
@@ -983,8 +1073,12 @@ mbuf *pkcs11_getcert(void *vdc)
   return bpo;
 }
 
-/*
- * returns base32 of time()
+/*! returns base32 of time()
+
+    Note: this routine does block (sleep) between calls to ensure a
+    unique monotonically increasing base32 strings result.
+
+    \return ASCII version of base32 repeesentation of seconds (i.e.,time())
  */
 static char *get_monotonic_str()
 {
@@ -1007,12 +1101,18 @@ static char *get_monotonic_str()
   return out;
 }
 
-/*
- * Generates a "bits" bit RSA key with label based on "flags"
- * in the first HSM pkcs11_init() found.
- * Returns NULL on fail otherwise returns filled in struct.
- * Calls fillinkinfo() for DNSSEC particulars.
- * Note: label/id limited to 7 bytes due to AEP HSM display.
+/*! Generates a "bits" bit RSA key with label based on "flags"
+    in the first HSM pkcs11_init() found.
+
+    The CKA_LABEL is based on a time based sting for uniquness.
+    However duplicates are checked for in this routine nonetheless.
+    Returns NULL on fail otherwise returns filled in struct.
+    A later call to fillinkinfo() will populate DNSSEC key info.
+    Note: label/id limited to 7 bytes due to AEP HSM display.
+
+   \param bits number of bits for RSA key pair to generate
+   \param flags Sets prefix for key label in HSM. 256=Z 257=K 0=C or U by default
+   \return NULL if error or void casted pointer to new pkcs11 key struct
  */
 void *pkcs11_genrsakey(int bits,int flags)
 {
@@ -1214,9 +1314,12 @@ void *pkcs11_genrsakey(int bits,int flags)
   return (void *)dc;
 }
 
-/*
- * delete keys matching non-null dc->label,dc->id from the HSM slot
- * pointed to by dc->pk
+/*! delete keys matching non-null dc->label and/or dc->id from the HSM slot
+    pointed to by dc->pk
+
+    \param vdc void casted pointer to pkcs11 key struct for key to be deleted
+           from HSM
+    \return -1 if error; 0 if success
  */
 int pkcs11_delkey(void *vdc)
 {
@@ -1280,6 +1383,10 @@ int pkcs11_delkey(void *vdc)
   return 0;
 }
 
+/*! convert PKCS11 return codes to ASCIIZ string
+    \param rv PKCS11 library function return code
+    \return corresponding string or error string
+*/ 
 static char *pkcs11_ret_str(CK_RV rv)
 {
   switch(rv) {

@@ -1,24 +1,23 @@
 /*
- * Copyright (C) 2007 Internet Corporation for Assigned Names 
- *                         and Numbers ("ICANN")
+ * $Id: changepin.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
+ *
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Author: RHLamb 2007
- *   pkcs11 HSM PIN change utility
- *
- * cc foo.c -o foo -ldl 
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +44,12 @@ char *fgetsne(char *bufin,int bufinsize,FILE *streamin);
 int scanhsms(char *otherdir);
 #define PKCS11_HSMCONFIGDIR "/opt/dnssec"
 
+/*! routine to change HSM USER PIN
+
+    \param argc number of arguments
+    \param argv array of pointers to arguments
+    \return -1 if error; 0 if success
+ */
 int main(int argc,char *argv[])
 {
   CK_C_GetFunctionList   pGFL=0;
@@ -265,6 +270,14 @@ int main(int argc,char *argv[])
   return 0;
 }
 
+/*! an attempt to have a local ctrl-c able noecho fgets
+
+    \param s pointer to buffer to receive characters
+    \param n size of above buffer
+    \param fp file pointer to open input file
+
+    \return pointer to the buffer filled in or NULL if no chars
+*/
 /*#include <curses.h>*/
 char *fgetsne(char *s,int n, FILE *fp)
 {
@@ -281,6 +294,14 @@ char *fgetsne(char *s,int n, FILE *fp)
 static char fname[LBUFLEN];
 #define NARGS 20
 
+/*! configure HSM environment variables
+
+    \param otherdir If non-null then path to other directory to scan for HSM
+           configuration files in addition to the current directory. config files
+           in current directory take precedence.
+
+    \return -1 if error; 0 if success.
+*/
 int scanhsms(char *otherdir)
 {
   char *p,lbuf[LBUFLEN];
@@ -371,8 +392,15 @@ int scanhsms(char *otherdir)
   return ret;
 }
 
-/* parse line /w delc as delimiter into no more than maxargs in argv[]
-   skipping whitespace (' ' and \t).  Return the number of args */
+/*! parse line /w delc as delimiter into no more than maxargs in argv[]
+    skipping whitespace (' ' and tab).  Return the number of args 
+
+    \param line pointer to buffer to be parsed
+    \param argv array of maxargs pointers to be filled in with pointers into line
+    \param maxargs size of pointer array above
+    \param delc delimiter character
+    \return number of items parsed
+*/
 int lparse(char *line,char *argv[],int maxargs,char delc)
 {
   char *cp;
@@ -394,7 +422,7 @@ int lparse(char *line,char *argv[],int maxargs,char delc)
       *line++ = '\0';
     } else {
       for(cp=line;*cp;cp++) {
-        if(/**cp == ' ' || *cp == '\t' ||*/ *cp == delc) break;
+        if(*cp == delc) break;
       }
       if(*cp) *cp++ = '\0'; /* non-zero */
       line = cp;
@@ -403,14 +431,18 @@ int lparse(char *line,char *argv[],int maxargs,char delc)
   return argc;
 }
 
-/* remove preceeding and trailing whitespace...and trailing cr and lf */
+/* remove preceeding and trailing whitespace...and trailing cr and lf 
+
+   \param io pointer to buffer that will be modified in place
+   \return -1 on error; 0 if success
+*/
 int str_cleanup(char *io)
 {
   char *q,*p;
 
   if (io == NULL) return -1;
 
-  /* rid trailing space (' ' or '\t') and CF/LF */
+  /* rid trailing space (' ' or tab) and CF/LF */
   for(q = io + strlen(io);q-- != io && isspace(*q) ;) ;
 
   *(q+1) = '\0';
@@ -423,6 +455,11 @@ int str_cleanup(char *io)
   return 0;
 }
 
+/*! convert PKCS11 return codes to ASCIIZ string
+
+    \param rv PKCS11 library function return code
+    \return corresponding string or error string
+*/ 
 static char *pkcs11_ret_str(CK_RV rv)
 {
   switch(rv) {

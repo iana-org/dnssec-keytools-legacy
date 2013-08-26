@@ -1,24 +1,21 @@
 /*
- * $Id: ksrsigner.c 418 2010-06-09 00:36:56Z lamb $
+ * $Id: ksrsigner.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2007,2008 Internet Corporation for Assigned Names
- *                         and Numbers ("ICANN")
+ * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
  *
- * From the "IANA DNSSEC Signed Root Testbed Project 2007, 2008, 2009"
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * Author: RHLamb 2008,2009,2010
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "config.h"
@@ -30,7 +27,7 @@
 #include "dnssec.h"
 #include "compat.h"
 
-#define LOGDIR "."
+#define LOGDIR "."  /*!< Directory for logfiles */
 
 static const char *progname = "ksrsigner";
 
@@ -60,12 +57,22 @@ static time_t t_now;
 
 static int getKSKs(krecord *ksks[]);
 
-/*
- * Usage: ksrsigner [current-KSK] [next-KSK]
- *  /w no arguments, will sign ksr.xml with first found or KSR requested ones
- *  /w one argument, use that KSK
- *  /w two arguments, use the first and rollover to second
- */
+/*! ksrsigner main
+
+    Usage: ksrsigner [current-KSK] [next-KSK]
+     /w no arguments, will sign ksr.xml with first found or KSR requested ones
+     /w one argument, use that KSK
+     /w two arguments, use the first and rollover to second
+
+    -Override skips required match with prior KSR/SKR in chain.
+
+    -Revoke creates a SKR that sets the REVOKE bit for all KSK, i.e., for
+    reverting to insecure and unsigned.
+
+    \param argc argtument count
+    \param *argv[] pointer to args described above
+    \return 0 on success, non-zero on error
+*/
 int main(int argc,char *argv[])
 {
   FILE *fin,*ftmp,*fout;
@@ -115,10 +122,10 @@ int main(int argc,char *argv[])
         p = ksrfile;
       }
       if(strncasecmp(p,"ksr",3) == 0) {
-	/* if it starts with "ksr", just change "ksr" to "skr" */
+	/*! if it starts with "ksr", just change "ksr" to "skr" */
         snprintf(lbuf,sizeof(lbuf),"%s/skr%s",ksrpath,&p[3]);
       } else {
-	/* otherwise prefix the ksr filename with "skr" */
+	/*! otherwise prefix the ksr filename with "skr" */
         snprintf(lbuf,sizeof(lbuf),"%s/skr-%s",ksrpath,p);
       }
       skrfile = strdup(lbuf);
@@ -397,8 +404,10 @@ int main(int argc,char *argv[])
 }
 
 /*
- * Fill in DNSSEC specific info for a HSM key
- */
+ *! Fill in DNSSEC specific info for a HSM key.
+\param pk void casted pointer to pkcs11 control block
+\return non-null populated krecord upon success, otherwise return NULL.
+*/
 static krecord *fillinkinfo(void *pk)
 {
   char *p0;
@@ -411,7 +420,7 @@ static krecord *fillinkinfo(void *pk)
   if((kr=(krecord *)calloc(1,sizeof(krecord))) == NULL) return NULL;
   kr->pkcb = pk;
   kr->bits = pkcs11_bits(pk);
-  /* in order to make the code easy to read - make a copies in both pkcs11 and dnssec space - yech. */
+  /* in order to make the code easy to read - make copies in both pkcs11 and dnssec space - yech. */
   kr->modulus = mbuf_dup(pkcs11_modulus(pk));
   kr->pubexp = mbuf_dup(pkcs11_pubexp(pk));
   kr->label = mbuf_dup(pkcs11_label(pk));
@@ -462,6 +471,12 @@ static krecord *fillinkinfo(void *pk)
   return kr;
 }
 
+/*! get all KSKs from the HSM via pkcs11 while interacting with the user and
+    store locally.
+
+    \param ksks storage array for pointers to KSK krecords
+    \return number of KSKs found
+*/
 static int getKSKs(krecord *ksks[])
 {
   void *pk[MAX_KSKS];
@@ -483,9 +498,16 @@ static int getKSKs(krecord *ksks[])
 #include "rl_der.h"
 #endif
 
-/*
- * DNSSEC, CERTS, and S/MIME all use this same pkcs1
- * digital signature scheme. This meets FIPS 186-3
+/*! Compute padded hash for digital signatures.
+
+    DNSSEC, CERTS, and S/MIME all use this same pkcs1 digital signature
+    padding scheme. This meets FIPS 186-3.
+
+    \param htype hash type to compute (sha1 sha256)
+    \param hash buffer holding hash
+    \param hashlen length of hash
+    \param klen key length that will be used to sign.
+    \return mbuf containing padded hash.  Null if failed.
  */
 static mbuf *pkcs1padrsa(int htype,uint8_t *hash,int hashlen,int klen)
 {
@@ -519,7 +541,7 @@ static mbuf *pkcs1padrsa(int htype,uint8_t *hash,int hashlen,int klen)
   bp = alloc_mbuf(klen);
   q = bp->p0;
   *q++ = 0x00;
-  *q++ = 0x01; /* private key */
+  *q++ = 0x01; /* set private key bit */
 
   n = klen - (3+hdrlen);
   for(i=0;i<n;i++) *q++ = 0xFF;
@@ -560,7 +582,7 @@ static mbuf *pkcs1padrsa(int htype,uint8_t *hash,int hashlen,int klen)
   bp = alloc_mbuf(klen);
   q = bp->p0;
   *q++ = 0x00;
-  *q++ = 0x01; /* private key */
+  *q++ = 0x01; /* set private key bit */
 
   n = klen - (hashlen+3+hdrlen);
   for(i=0;i<n;i++) *q++ = 0xFF;
@@ -576,6 +598,14 @@ static mbuf *pkcs1padrsa(int htype,uint8_t *hash,int hashlen,int klen)
 #endif /* DO_LIVE_ASN1_CALCULATION */
 }
 
+/*! Helper routine for qsort
+
+    Used to canonicalize key order for rrsig().
+
+    \param a first void casted krecord to compare
+    \param b second void casted krecord to compare
+    \return binary "lexographical" compare between key byte strings in the krecords
+ */
 static int rrcmpr(const void *a,const void *b)
 {
   krecord * const *d1 = a;
@@ -587,7 +617,24 @@ static int rrcmpr(const void *a,const void *b)
   n = min(r1->rdatalen,r2->rdatalen);
   return memcmp(r1->rdata,r2->rdata,n);
 }
-/* compute the RRSIGs based on keys[] using keys[] where the signer flag is set.  RRSIG is calculated using domain dn, t_inception,time_t, t_expiration.  If shiwkeys is initially set, routine will writw keys to ftmp as well as sigs. Note: validateable keybundles are written into tmp to simplify final valisation. */
+
+/*! compute the RRSIGs
+
+    compute the RRSIGs based on keys[] using keys[] where the signer flag is
+    set. RRSIG is calculated using domain dn, t_inception,time_t,
+    t_expiration. If showkeys is initially set, routine will write keys to
+    ftmp as well as sigs. Note: BIND validateable keybundles are written into
+    "tmp" dir ("skr_keybundle_template") to simplify final testing.
+
+    \param keys list of keys over which we want the RRSIG
+    \param keycnt number of keys in list
+    \param dn doman name to incorporate into calculation
+    \param t_inception RRSIG inception time
+    \param t_expiration RRSIG expiration time
+    \param showkeys set on first call so that keys are output as well as signatures
+    \param ftmp where output is written.
+    \return 0 if success.
+ */
 int rrsig(krecord *keys[],int keycnt,char *dn,time_t t_inception,time_t t_expiration,int *showkeys,FILE *ftmp)
 {
   uint8_t *w,wire[1024];
@@ -605,6 +652,8 @@ int rrsig(krecord *keys[],int keycnt,char *dn,time_t t_inception,time_t t_expira
   char lbuf[MAXPATHLEN];
 
   /* 
+   * Create test keybundles in zonefile format so that bind tools can
+   * be used to independently test signatures. 
    * To test RRSIG just created:
    *   dnssec-signzone -v 10 -o . skr.keybundle
    * Output should indicate our KSK RRSIGs were "retained"
@@ -772,8 +821,23 @@ int rrsig(krecord *keys[],int keycnt,char *dn,time_t t_inception,time_t t_expira
 }
 
 
-/* 
- * validate the keybundle made up of keys in klist and signatures in s. returns 0 if validation successful. HSM path has no reliance on external routines like OPENSSL.  If no HSM, OPENSSL is used.  This is true for the Web based pre-acceptance testing on KSRs 
+/*! validate the keybundle
+
+    validate the keybundle made up of keys in klist and signatures in s.
+    returns 0 if validation successful. HSM path has no reliance on external
+    routines like OPENSSL. If no HSM, OPENSSL is used. This is true for the
+    Web based pre-acceptance testing on KSRs
+
+    verifies proof of possesion of a private key creating signature "s"
+    corresponding to one of the keys in "klist". Basically create RRSIG for
+    klist and compare. Note this is used for KSK and ZSK signatures. For KSK
+    the private key MUST be in the HSM - an important link in the chain of
+    KSR/SKRs and therefore trust. For ZSK it does not as it is only proof of
+    possesion for the KSR provider.
+
+    \param s Signature created by one of the key in klist
+    \param klist List of krecord structures.
+    \return 0
  */
 int validatekeybundle(signature *s,krecord *klist)
 {
@@ -823,12 +887,12 @@ int validatekeybundle(signature *s,krecord *klist)
 #endif
 
       /*
-       * RR(i) = owner | type | class | TTL | RDATA length | RDATA
-       * owner = canonical
-       * type(16) A = 1, DNSKEY = 48 RRSIG = 46  all Network Order
-       * class(16) IN = 1
-       * ttl (32)
-       * RDATA length(16)
+       *! RR(i) = owner | type | class | TTL | RDATA length | RDATA
+       *! owner = canonical
+       *! type(16) A = 1, DNSKEY = 48 RRSIG = 46  all Network Order
+       *! class(16) IN = 1
+       *! ttl (32)
+       *! RDATA length(16)
        */
       w = wire;
       
@@ -841,10 +905,10 @@ int validatekeybundle(signature *s,krecord *klist)
       rdata = w;
       { /* for DNSKEY */
         /* canonical order is RDATA: flags|proto|alg|key */
-        *(uint16_t *)w = htons(dr->Flags); w += 2; /* flags */
-        *(uint8_t *)w = dr->Protocol; w++; /* proto */
-        *(uint8_t *)w = dr->Algorithm; w++; /* alg */
-        n = base64decode(dr->PublicKey,w,sizeof(wire)); w += n; /* public key */
+        *(uint16_t *)w = htons(dr->Flags); w += 2;
+        *(uint8_t *)w = dr->Protocol; w++;
+        *(uint8_t *)w = dr->Algorithm; w++;
+        n = base64decode(dr->PublicKey,w,sizeof(wire)); w += n;
       }
       n = (int)(w - wire);
       rdatalen = (int)(w - rdata); 
@@ -877,12 +941,12 @@ int validatekeybundle(signature *s,krecord *klist)
     hashit(&gh,NULL,0);
     w = wire;
     *(uint16_t *)w = htons(48); w += 2; /* type = DNSKEY */
-    *(uint8_t *)w = s->Algorithm; w += 1;  /* alg = 5 RSASHA1 */
+    *(uint8_t *)w = s->Algorithm; w += 1;
     *(uint8_t *)w = s->Labels; w += 1;  /* label = 1 */
-    *(uint32_t *)w = htonl(s->OriginalTTL); w += 4; /* ttl */
-    *(uint32_t *)w = htonl(s->SignatureExpiration); w += 4; /* exp */
-    *(uint32_t *)w = htonl(s->SignatureInception); w += 4; /* incep */
-    *(uint16_t *)w = htons(s->KeyTag); w += 2; /* tag - here /w KSK flag */
+    *(uint32_t *)w = htonl(s->OriginalTTL); w += 4;
+    *(uint32_t *)w = htonl(s->SignatureExpiration); w += 4;
+    *(uint32_t *)w = htonl(s->SignatureInception); w += 4;
+    *(uint16_t *)w = htons(s->KeyTag); w += 2; /* here w/ KSK flag */
     n = dnssec_dn2wire(s->SignersName,w); w += n; /* dn0 */
     n = (int)(w-wire);
 
@@ -945,4 +1009,3 @@ int validatekeybundle(signature *s,krecord *klist)
   }
   return ret;
 }
-

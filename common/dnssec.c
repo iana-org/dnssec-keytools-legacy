@@ -1,28 +1,27 @@
 /*
- * $Id: dnssec.c 434 2010-06-10 20:25:05Z jakob $
+ * $Id: dnssec.c 567 2010-10-28 05:11:10Z jakob $
  *
- * Copyright (C) 2010 Internet Corporation for Assigned Names 
- *                    and Numbers ("ICANN")
+ * Copyright (c) 2010 Internet Corporation for Assigned Names ("ICANN")
+ * 
+ * Author: Richard H. Lamb ("RHL") richard.lamb@icann.org
  *
- * Permission to use, copy, modify, and distribute this software for any
+ * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ICANN DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ICANN BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include <string.h>
 
 #include "dnssec.h"
 
-/* Calculate DNSSEC keytag */
 uint16_t dnssec_keytag (const uint8_t *key, size_t klen)
 {
   uint32_t acm;
@@ -33,8 +32,6 @@ uint16_t dnssec_keytag (const uint8_t *key, size_t klen)
   return acm&0xFFFF;
 }
 
-/* Put a canonicalized representation of ASCII
-   domain name in wire format, returning len */
 size_t dnssec_dn2wire(const char *dn, uint8_t *wire)
 {
   size_t n;
