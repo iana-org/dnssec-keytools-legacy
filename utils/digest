@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# $Id: digest 370 2010-05-29 19:00:01Z jakob $
+
+openssl dgst -sha256 $@

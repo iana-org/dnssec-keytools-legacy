@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# $Id: printlog 370 2010-05-29 19:00:01Z jakob $
+
+LOGFILE=$1
+COPIES=${2:-1}
+
+if [ ! -f "$LOGFILE" ]; then
+	echo "usage: $0 [filename] [copies]"
+	exit 1
+fi
+
+# approx top margin in postscript points (1 point = 0.353 mm)
+# (might need to be adjusted to match the letterhead)
+top_margin=200
+
+
+# strip keymgmt tools timestams and loglevel, then print using enscript
+sed 's/....-..-..T..:..:..Z: \[.*\] //' < $LOGFILE |\
+enscript \
+	--copies=${COPIES} \
+	--no-header \
+	--margins=::${top_margin}: \
+	--font="Courier10"

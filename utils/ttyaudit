@@ -1,0 +1,100 @@
+#!/usr/bin/perl
+#
+# $Id: ttyaudit 368 2010-05-29 18:57:58Z jakob $
+#
+# Copyright (c) 2010 Kirei AB. All rights reserved.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+######################################################################
+
+require 5.6.0;
+use warnings;
+use strict;
+
+use POSIX qw(strftime);
+
+my $progname = "TTYAUDIT";
+
+sub main {
+    if ($#ARGV < 0) {
+        print STDERR "usage: ttyaudit [device1] [device2] ... [deviceN]";
+        exit(1);
+    }
+
+    my $timestamp = strftime("%Y%m%d-%H%M%S", localtime);
+
+    message("Starting");
+
+    foreach my $device (@ARGV) {
+        unless (-e $device) {
+            message("Device %s not found", $device);
+            exit(1);
+        }
+
+        message("Setting up audit log for device %s", $device);
+
+        my $tag = $device;
+        $tag =~ s,/(dev|tmp)/,,;
+
+        my $logfile = sprintf("ttyaudit-%s-%s.log", $tag, $timestamp);
+
+        my $pid = fork();
+
+        if ($pid) {
+            message("Logging device %s to %s (pid=%d)", $device, $logfile,
+                $pid);
+        } else {
+            ttyaudit($device, $tag, $logfile);
+            message("Device %s finished (pid=%d)", $device, $$);
+            exit(0);
+        }
+    }
+
+    1 while (wait() != -1);
+
+    message("Done");
+}
+
+sub ttyaudit {
+    my $device  = shift;
+    my $tag     = shift;
+    my $logfile = shift;
+
+    open(INPUT,  "< $device");
+    open(OUTPUT, ">> $logfile");
+
+    while (<INPUT>) {
+        chomp;
+
+        my $log = sprintf("%s\t%s\t%s\n", timestamp(), $tag, $_);
+        print STDOUT $log;
+        print OUTPUT $log;
+    }
+
+    close(INPUT);
+    close(OUTPUT);
+}
+
+sub message {
+    my $format = shift;
+
+    printf STDERR (">> %s $format\n", $progname, @_);
+}
+
+# return timstamp in ISO 8601:2004 format, e.g. YYYY-MM-DDThh:mm:ssTZD
+sub timestamp {
+    return strftime("%Y-%m-%dT%H:%M:%S%z", localtime);
+}
+
+main;

@@ -1,0 +1,262 @@
+<KSR id="ba050f09-e208-4a32-bad2-91de3f2c2a12" domain="." serial="1">
+  <Request>
+    <RequestPolicy>
+      <ZSK>
+        <PublishSafety>P10D</PublishSafety>
+        <RetireSafety>P10D</RetireSafety>
+        <MaxSignatureValidity>P20D</MaxSignatureValidity>
+        <MinSignatureValidity>P15D</MinSignatureValidity>
+        <MaxValidityOverlap>P5D</MaxValidityOverlap>
+        <MinValidityOverlap>P5D</MinValidityOverlap>
+          <SignatureAlgorithm algorithm="8">
+            <RSA size="1024" exponent="3"/>
+          </SignatureAlgorithm>
+      </ZSK>
+    </RequestPolicy>
+    <RequestBundle id="c128ebfe-bd07-498e-bd6b-f50f91e14d29">
+      <Inception>2010-01-01T00:00:00</Inception>
+      <Expiration>2010-01-15T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d31" keyTag="49920">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAc2UsIt5d8lxdDil/4pLZVG8Y+kYc1Jf3RRAUzK1/ntFXcWL8gEDmuw6vBW8SiRF+HLKXTmEvqjE4SVV2HouhUb0SxRts5/q59g++K9F1XsnDeMavXAA2R4Pca7VepNq7jisMEPpWc5U7FWeSdsFZtHus1oRQ4QdBLU1dZIaehsl</PublicKey>
+      </Key>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d31">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>49920</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>dWHsotZ8nhQmK/mWEtb5P2/LG6dqWQCZ0b7+t/DB1pd4vz2ozoV/FnJS5oxdGDstxfe8QTkCkv33r0lQU/fo52vifm5CqCtjRJ2ZQcxKU8o0bKp7lfknt23YtMD+TqbIvvmM7bQOYhwc8JJCwvhZL04B72sZs7cu0DOnuJFakO8=</SignatureData>
+      </Signature>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>QtbwIzCJ8svWSRavvj9w+bJHig83pcdRKO9UF+1nOn0dqfPuxaLvSTZLXGIEtWwJjedbmU0KP5bLo+sBwLx/mUM72tiEM1U6B1RZw2SXNn+8T18nGsml5wepusaqFwuMg9rb366Il/BOFwg6xKZWHwhDCsJ+mVaP46msAZN7swE=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="086ce566-8cb9-4d8d-a99e-169789686ba7">
+      <Inception>2010-01-11T00:00:00</Inception>
+      <Expiration>2010-01-25T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="203f40d9-13f9-499e-8773-d5be8c62b288">
+      <Inception>2010-01-21T00:00:00</Inception>
+      <Expiration>2010-02-04T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="2e1f264e-4d94-4d6e-ae1a-73726a5e727e">
+      <Inception>2010-01-31T00:00:00</Inception>
+      <Expiration>2010-02-14T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="c477e58c-d4e1-433e-bf7a-6381aaa3b7b4">
+      <Inception>2010-02-10T00:00:00</Inception>
+      <Expiration>2010-02-24T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="6433bb72-5a53-4297-993a-11ecc42080ef">
+      <Inception>2010-02-20T00:00:00</Inception>
+      <Expiration>2010-03-06T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="4d875ce3-3f67-4002-87e8-1955442be60b">
+      <Inception>2010-03-02T00:00:00</Inception>
+      <Expiration>2010-03-16T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="3ea2e9bd-0bcb-4bd4-b7aa-2e9bb1c809a0">
+      <Inception>2010-03-12T00:00:00</Inception>
+      <Expiration>2010-03-26T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>cpRS1JsMhksuZLUA4I3hT8ggJTh8G4IqbJgtwWskstR2WwfWJi5bVg3sHT042L6dFngt1NSEmfoY5/ITYoDxUa3TuzUlRrYgjjIQdLW4AA055k5E6te07Q9qlXWdbT3KqXi0YC9fUCAtq7K3Z/ueQeOZihbSie+YRSTy5TELzWM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+    <RequestBundle id="2eb82027-fd70-49ca-8a91-831753df4bac">
+      <Inception>2010-03-21T00:00:00</Inception>
+      <Expiration>2010-04-05T23:59:59</Expiration>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32" keyTag="23763">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAZe8dP0ljyR/Jzmt/jTj3stT702l9T2eXUjnPo/NDOgmdbctepGaMMDRPL8IsZIghuSMbvUY3AjuSJnmGc0zdteeI1m+9P55fuG98hn+tzKtj1uT+UlW4s11JYuG+1+0e7kWYHikFrv3CsfPr8uBRIrThUMYtDeILkF6yTlkUGKD</PublicKey>
+      </Key>
+      <Key keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d33" keyTag="55138">
+        <TTL>172800</TTL>
+        <Flags>256</Flags>
+        <Protocol>3</Protocol>
+        <Algorithm>8</Algorithm>
+        <PublicKey>AwEAAcbW99jHMHfU9Q53Zur26M0i0EMgt0O8tKr9UwE6uH4Yyu6uYRMHFVU6f7xZNssh0TAlxVr0I4qxak5/ux17bnMs1yYh5W9EMivaHnmWOoEms778QOjRVnqocMtOQRbObstfa4YaDhtbSRZKpdSzT9DIX5wKCxoXUad98XDdxLNJ</PublicKey>
+      </Key>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d32">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>23763</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>E8qXi6Fr2PvcPFphA5qMsPu8S/HUFKUGDahl9DwaYkZbT+DZqcJXQGyDyXIZsKYPs5t1OPtsZyPsw7a6Yc6R6wVoj1X97VOFB0x8weoBONOwDDSZP9bJ9/bOW6HoBEOUkZfVAEuYKfdL6SErkbLvzRuAUaZxj9hUmwgjr9rdt5Y=</SignatureData>
+      </Signature>
+      <Signature keyIdentifier="302c312a302806035504031321566572695369676e20444e5353656320526f6f742054455354205a534b20312d33">
+        <TTL>172800</TTL>
+        <TypeCovered>DNSKEY</TypeCovered>
+        <Algorithm>8</Algorithm>
+        <Labels>0</Labels>
+        <OriginalTTL>172800</OriginalTTL>
+        <SignatureExpiration>2010-01-20T19:13:04</SignatureExpiration>
+        <SignatureInception>2009-12-21T19:13:04</SignatureInception>
+        <KeyTag>55138</KeyTag>
+        <SignersName>.</SignersName>
+        <SignatureData>kRgALfS2hRR5Wyy/Y9CNf3irqHPj0u6XrESm1jxJY7Zb3O6Meuk1Yh1HCHr5QKODao+ZvomURUdmppTjcnIbRcMus4x8YKqNyQe4/Px9MFCl6MLWJhk84oeHim+S/9Pn85XjngM1jwVmphFbUPHeFPsszCb8aavlEJQHP5x1CpM=</SignatureData>
+      </Signature>
+    </RequestBundle>
+  </Request>
+</KSR>

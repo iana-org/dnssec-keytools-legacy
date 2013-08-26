@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# $Id: displaycsr 370 2010-05-29 19:00:01Z jakob $
+
+PAGER=${PAGER:-less}
+
+openssl req -noout -text -inform der -in $1 | $PAGER

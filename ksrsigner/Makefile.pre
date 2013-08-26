@@ -1,0 +1,33 @@
+# $Id: Makefile.pre 61 2010-02-10 10:30:13Z jakob $
+
+INCLUDES = -I../common -I../common/cryptoki
+CPPFLAGS = $(INCLUDES) -DINTERNAL -DINTERACTIVE -DDOGETPASS
+CFLAGS = -m32 -Wall -Wextra -g
+LDFLAGS = -m32
+LIBS = -ldl
+
+OBJS = sha1.o sha2.o pkcs11_ksr.o util.o ksrsigner.o
+
+
+all: ksrsigner
+
+.c.o:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+sha1.o: ../common/sha1.c ../common/sha1.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+sha2.o: ../common/sha2.c ../common/sha2.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+util.o: ../common/util.c ../common/util.h ../common/sha2wordlist.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+ksrsigner: $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+clean:
+	rm -f *.o ksrsigner
+
+realclean: clean
+	rm -f *.log
