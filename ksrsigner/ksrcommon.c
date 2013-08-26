@@ -1,5 +1,5 @@
 /*
- * $Id: ksrcommon.c 567 2010-10-28 05:11:10Z jakob $
+ * $Id: ksrcommon.c 583 2011-09-14 22:15:49Z lamb $
  *
  * Copyright (c) 2007 Internet Corporation for Assigned Names ("ICANN")
  *
@@ -723,10 +723,13 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
   }
 
   if(rq->Expiration > maxexpiration) {
+    /*
     logger_warning("Requests signature expiration exceeds %d days. Limiting!",
       (T_VLIMIT+1));
     rq->Expiration = maxexpiration;
     ksrinvalid++;
+    */
+    logger_warning("*** Requests signature expiration exceeds limit of %d days! ***",(T_VLIMIT+1));
   }
 
   if(rq->Inception >= rq->Expiration) {

@@ -1,5 +1,5 @@
 /*
- * $Id: ksrpolicy.h 564 2010-10-25 06:44:08Z jakob $
+ * $Id: ksrpolicy.h 578 2011-09-13 23:24:41Z lamb $
  *
  * Copyright (c) 2010 Internet Corporation for Assigned Names ("ICANN")
  *
@@ -62,7 +62,7 @@
 /* Webservice settings */
 #define WKSR_MAILX        "/bin/mailx"        /*!< Path to mailx binary */
 #define WKSR_XMLLINT      "/usr/bin/xmllint"  /*!< Path to xmllint binary */
-#define WKSR_MAILADDRESS  "dnssec@iana.org"   /*!< Report email address */
+#define WKSR_MAILADDRESS  "ksr-notify@icann.org"   /*!< Report email address */
 #define WKSR_MAILSUBJECT  "New KSR received"  /*!< Report email subject */
 
 #define DEFAULT_KSR_FILENAME "ksr.xml"  /*!< Default KSR filename */

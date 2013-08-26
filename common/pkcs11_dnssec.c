@@ -1,5 +1,5 @@
 /*
- * $Id: pkcs11_dnssec.c 567 2010-10-28 05:11:10Z jakob $
+ * $Id: pkcs11_dnssec.c 578 2011-09-13 23:24:41Z lamb $
  *
  * Copyright (c) 2010 Internet Corporation for Assigned Names ("ICANN")
  * 
@@ -667,7 +667,7 @@ int pkcs11_hsmverify(mbuf *modulus,mbuf *pubexp,uint8_t *sig,int siglen,uint8_t 
     }
     return -1;
   }
-  if((rv=pfl->C_Verify(sh,(CK_BYTE_PTR)data,datalen,(CK_BYTE_PTR)sig,siglen)) != CKR_OK) {
+  if((rv=pfl->C_Verify(sh,(CK_BYTE_PTR)data,(CK_ULONG)datalen,(CK_BYTE_PTR)sig,(CK_ULONG)siglen)) != CKR_OK) {
     logger_error("pkcs11: C_Verify: %s",pkcs11_ret_str(rv));
     if((rv=pfl->C_DestroyObject(sh,hKey)) != CKR_OK) {
       logger_error("pkcs11: C_DestroyObject: %s",pkcs11_ret_str(rv));
@@ -893,6 +893,7 @@ int pkcs11_rsasignit2(void *vkr,uint8_t *data,int datalen,uint8_t *sout,int *sle
   CK_FUNCTION_LIST_PTR  pfl;
   CK_OBJECT_HANDLE      hPriv;
   CK_MECHANISM smech;
+  CK_ULONG slen2;  /* On Mac OS X we must be careful about int/CK_ULONG conversion */
 
   if(vkr == NULL || data == NULL || datalen <= 0 || sout == NULL || *slen <= 0) {
     logger_error("pkcs11: NULL argument to %s",__func__);
@@ -917,10 +918,13 @@ int pkcs11_rsasignit2(void *vkr,uint8_t *data,int datalen,uint8_t *sout,int *sle
     logger_error("pkcs11: C_SignInit: %s",pkcs11_ret_str(rv));
     return -1;
   }
-  if((rv=pfl->C_Sign(sh,(CK_BYTE_PTR)data,(CK_ULONG)datalen,(CK_BYTE_PTR)sout,(CK_ULONG *)slen)) != CKR_OK) {
+  slen2 = *slen;
+  if((rv=pfl->C_Sign(sh,(CK_BYTE_PTR)data,(CK_ULONG)datalen,(CK_BYTE_PTR)sout,(CK_ULONG *)&slen2)) != CKR_OK) {
+    *slen = slen2;
     logger_error("pkcs11: C_Sign: %s",pkcs11_ret_str(rv));
     return -1;
   }
+  *slen = slen2;
   return 0;
 }
 
