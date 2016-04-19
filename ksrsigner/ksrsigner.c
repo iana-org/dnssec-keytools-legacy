@@ -91,6 +91,8 @@ int main(int argc,char *argv[])
       printf("%s %s version %s\n", PACKAGE_TARNAME, progname, PACKAGE_VERSION);
       exit(0);
     }
+
+    if(strcmp(argv[i],"-d") == 0) { debug = 1; continue; } // Added a debug flag for testing
     
     if(strcmp(argv[i],"-h") == 0) {
       printf("Usage: %s [-Override] [-Revoke] [-h] [current-KSK] [next-KSK] [KSR-to-sign.xml]\n", argv[0]);
@@ -280,26 +282,28 @@ int main(int argc,char *argv[])
     }
     for(x=rq->x_key,j=0;x && j<2;x=x->next) ksrk[j++] = x;
     if(i != 2) {
-      logger_error("Wrong number (%d) of ZSKs in SKR",i);
-      k++;
-      goto nmatch;
+      // Change for 1024->2048 ZSK fallback path KSRs. Error is now warning
+      logger_warning("Wrong number (%d) of ZSKs in SKR",i);
     }
     if(j != 2) {
-      logger_error("Wrong number (%d) of ZSKs in KSR",j);
-      k++;
-      goto nmatch;
+      // Changed for 1024->2048 ZSK fallback path KSRs. Error is now warning
+      logger_warning("Wrong number (%d) of ZSKs in KSR",j);
     }
-    if(
-       ((strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)
-         || strcmp(skrk[1]->PublicKey,ksrk[1]->PublicKey))
-        &&
-        (strcmp(skrk[0]->PublicKey,ksrk[1]->PublicKey)
-         || strcmp(skrk[1]->PublicKey,ksrk[0]->PublicKey)))
-       ) {
-      logger_error("Last SKR and current KSR keys do not match");
-      k++;
-    }
-  nmatch:
+    /* Added for 1024->2048 ZSK fallback path KSRs so that a single ZSK at the begining or end is acceptable */
+    if(i != j) k++;
+    else if(i == 1) {
+      if(strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)) k++;
+    } else if(i == 2) {
+      if(
+	 ((strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)
+	   || strcmp(skrk[1]->PublicKey,ksrk[1]->PublicKey))
+	  &&
+	  (strcmp(skrk[0]->PublicKey,ksrk[1]->PublicKey)
+	   || strcmp(skrk[1]->PublicKey,ksrk[0]->PublicKey)))
+	 ) k++;
+    } else k++;
+    if(k) logger_error("Last SKR and current KSR keys do not match");
+    // nmatch: label no longer needed after 1024->2048 ZSK fallback changes above
     if(k) {
       logger_error("Problem with ZSK trust daisy chain.");
       ksrinvalid++;
@@ -431,6 +435,18 @@ static krecord *fillinkinfo(void *pk)
     free_keyrecord(kr);
     return NULL;
   }
+  // Narrow range of acceptable KSK match policy exponent and size
+  if(elen != KSK_RRSIG_RSA_EXPONENT_BNLEN
+     || memcmp(kr->pubexp->p0,KSK_RRSIG_RSA_EXPONENT_BN,KSK_RRSIG_RSA_EXPONENT_BNLEN)) {
+    logger_error("Unsupported public exponent");
+    free_keyrecord(kr);
+    return NULL;
+  }  
+  if(kr->bits != KSK_RRSIG_RSA_KEYSIZE) {
+    logger_error("Unsupported key size %d",kr->bits);
+    free_keyrecord(kr);
+    return NULL;
+  }
   mlen = (int)(kr->modulus->pc - kr->modulus->p0);
   
   q = q0 = (uint8_t *)malloc((elen+mlen+1));
@@ -480,14 +496,37 @@ static krecord *fillinkinfo(void *pk)
 static int getKSKs(krecord *ksks[])
 {
   void *pk[MAX_KSKS];
-  int i,n;
-
+  int i,j,n,m,m1,m2;
+  // Added support for being able to load specific keys - not all which can cause confusion
+  // Was not a problem with one key in the HSM
+  m1 = m2 = 0;
+  if(ksklabel_1) m1 = strlen(ksklabel_1);
+  if(ksklabel_2) m2 = strlen(ksklabel_2);
   n = pkcs11_getpub(NULL,NULL,NULL,NULL,pk,MAX_KSKS);
-  for(i=0;i<n;i++) {
-    ksks[i] = fillinkinfo(pk[i]);
+  for(i=0,j=0;i<n;i++) {
+    if(m1) { // is it a key we want
+      mbuf *bp;
+      bp = mbuf_dup(pkcs11_label(pk[i]));
+      m = (int)(bp->pc - bp->p0);
+      if(m2) {
+	if((m == m1 && memcmp(bp->p0,ksklabel_1,m) == 0)
+	   || (m == m2 && memcmp(bp->p0,ksklabel_2,m) == 0) ) goto accept;
+      } else if(m == m1 && memcmp(bp->p0,ksklabel_1,m) == 0) goto accept;
+      mbuf_free(bp);
+      continue;
+    accept:
+      mbuf_free(bp);
+    }
+    if((ksks[j] = fillinkinfo(pk[i])) == NULL) { // load keys. any failure is serious enough to terminate
+      for(i=0;ksks[j] && i<n;i++) { // clean up after ourselves
+	free_keyrecord(ksks[j]);
+	ksks[j] = NULL;
+      }
+      return -1;
+    }
+    j++;
   }
-
-  return n;
+  return j;
 }
 
 /******************************************************************

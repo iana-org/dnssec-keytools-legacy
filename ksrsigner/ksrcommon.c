@@ -39,6 +39,7 @@ static void free_responsepolicy(responsepolicy *r);
 static char *gattr(char *tp,char *str);
 static time_t ztime2sec(char *s);
 static int fillinpinfo(krecord *kr);
+static uint16_t updatekeytag(krecord *kr); // Called earlier to check RequestBundle keyTags with Key material
 
 #define DBUFSIZE 2048
 
@@ -236,16 +237,24 @@ int xmlparse(char *tp,xmlstate *xs)
           rppolicy = (responsepolicy *)ksr_calloc(1,sizeof(responsepolicy));
 #define SIGALG_STR "SignatureAlgorithm "
         } else if(strncasecmp(p,SIGALG_STR,sizeof(SIGALG_STR)-1) == 0) {
-          if(rppolicy) {
+	  if(rppolicy) {
             char *q2;
-            if(rppolicy->sigalg) free(rppolicy->sigalg);
-            rppolicy->sigalg = (sigalg *)ksr_calloc(1,sizeof(sigalg));
-            if((q2=gattr(p,"algorithm=")) == NULL) {
+	    sigalg *xpsigalg;
+	    // Add multiple SignatureAlgorithm support    
+	    xpsigalg = (sigalg *)ksr_calloc(1,sizeof(sigalg));
+	    if(rppolicy->sigalg) {
+	      sigalg *xp;
+	      for(xp=rppolicy->sigalg;xp->next;xp=xp->next) ;
+	      xp->next = xpsigalg;
+	    } else {
+	      rppolicy->sigalg = xpsigalg;
+	    }
+	    if((q2=gattr(p,"algorithm=")) == NULL) {
               logger_error("XML tag <%s> is missing attribute value for %s",p,"algorithm=");
               ksrinvalid++;
               break;
             }
-            rppolicy->sigalg->algorithm = strtol(q2,&q2p,10);
+            xpsigalg->algorithm = strtol(q2,&q2p,10); // Add multiple SignatureAlgorithm support
 	    if(*q2p) {
 	      logger_error("algorithm non numeric \"%s\"",q2);
 	      ksrinvalid++;
@@ -253,18 +262,22 @@ int xmlparse(char *tp,xmlstate *xs)
 	      break;
 	    }
 	    free(q2);
-          }
+	  }
 #define RSACMP_STR "RSA "
         } else if(strncasecmp(p,RSACMP_STR,sizeof(RSACMP_STR)-1) == 0) {
           if(rppolicy && rppolicy->sigalg) {
             char *q2;
-            if((q2=gattr(p,"size=")) == NULL) {
+	    sigalg *xp;
+	    // Add multiple SignatureAlgorithm support
+	    for(xp=rppolicy->sigalg;xp->next;xp=xp->next) ;
+	    
+	    if((q2=gattr(p,"size=")) == NULL) {
               logger_error("XML tag <%s> is missing attribute value for %s",
                 p,"size=");
               ksrinvalid++;
               break;
             }
-            rppolicy->sigalg->rsa_size = strtol(q2,&q2p,10);
+            xp->rsa_size = strtol(q2,&q2p,10); // Add multiple SignatureAlgorithm support
 	    if(*q2p) {
 	      logger_error("rsa size non numeric \"%s\"",q2);
 	      ksrinvalid++;
@@ -278,7 +291,7 @@ int xmlparse(char *tp,xmlstate *xs)
               ksrinvalid++;
               break;
             }
-            rppolicy->sigalg->rsa_exp = strtol(q2,&q2p,10);
+            xp->rsa_exp = strtol(q2,&q2p,10); // Add multiple SignatureAlgorithm support
 	    if(*q2p) {
 	      logger_error("Exponent non numeric \"%s\"",q2);
 	      ksrinvalid++;
@@ -286,7 +299,7 @@ int xmlparse(char *tp,xmlstate *xs)
 	      break;
 	    }
 	    free(q2);
-          }
+	  }
         }
 
         if(xmlparse(&lbuf[1],xs) < 0) return -1;
@@ -645,9 +658,128 @@ static void free_responsepolicy(responsepolicy *r)
   if(r->MinSignatureValidity) free(r->MinSignatureValidity);
   if(r->MaxValidityOverlap) free(r->MaxValidityOverlap);
   if(r->MinValidityOverlap) free(r->MinValidityOverlap);
-  if(r->sigalg) free(r->sigalg);
+  if(r->sigalg) {
+    sigalg *xp,*xpn;
+    for(xp=r->sigalg;xp;) { // Add multiple SignatureAlgorithm processing
+      xpn = xp->next;
+      free(xp);
+      xp = xpn;
+    }
+  }
   free(r);
 }
+
+/*! Return (XML-format-days) - (days). Support for testing RequestPolicy
+
+   \param xst pointer to XML formated days. e.g. PxD x days
+   \param days
+   \return (XML-format-days) - (days)
+*/
+static int xmltimecmp(char *xst,int days)
+{
+  int dout;
+  if(xst == NULL) return 0; // accept if not specified since this does not effect DNSKEY RRset
+  dout = 0;
+  sscanf(xst,"P%dD",&dout);
+  if(debug) logger_info("%s: %d - %d",__func__,dout,days);
+  return dout - days;
+}
+/*! Check RequestPolicy and Other sections of KSR.  Note:Has no effect on resultant DNSKEY RRSet
+
+    \param rq pointer to parsed request
+    \return 0 but global variable ksrinvalid is incremented for each error
+*/
+static int check_requestpolicy(reqresp *rq)
+{
+  static reqresp *last_rq=NULL;
+
+  if(last_rq) { // Test RRSIG overlap of RequestBundles (Other)
+    // On subsequent passes check T_MIN/MAX_VALIDITY_OVERLAP - MUST BE SEQUENTIAL RequestBundles
+    time_t li;
+    if(rq->Inception > last_rq->Expiration) {
+      logger_error("Signatures do not overlap");
+      ksrinvalid++;
+    }
+    li = (1 + last_rq->Expiration - rq->Inception)/T_ONEDAY;
+    if(debug) logger_info("Overlap = %d",li);
+    if(li < T_MIN_VALIDITY_OVERLAP || li > T_MAX_VALIDITY_OVERLAP) {
+      logger_error("Overlap period out of policy %d days",li);
+      ksrinvalid++;
+    }
+  }
+
+  last_rq = rq; // first pass so set last_rq for subsequent sequential overlap comparison
+
+  // Check stated VRSN ZSK RequestPolicy to see if they match specs.
+  // Not used in results (DNSKEY RRsets) except to check VRSN's own work.
+  // We enforce actual param limits on keys+sigs in later section.
+  if(xmltimecmp(rppolicy->PublishSafety,T_PUBLISH_SAFETY) < 0) {
+    logger_error("ZSK POLICY: Bad PublishSafety (%s)",rppolicy->PublishSafety);
+    ksrinvalid++;
+  }
+  if(xmltimecmp(rppolicy->RetireSafety,T_RETIRE_SAFETY) > 0) {
+    logger_error("ZSK POLICY: Bad RetireSafety (%s)",rppolicy->RetireSafety);
+    ksrinvalid++;
+  } 
+  // ICANN controls this since we are the signer - see original code later
+  // if(li > (T_MAX_SIG_VAL*T_ONEDAY) || (li+1) < (T_MIN_SIG_VAL*T_ONEDAY))  15-20 days
+  if(xmltimecmp(rppolicy->MaxSignatureValidity,T_MAX_SIG_VAL)) { // match
+    logger_error("ZSK POLICY: Bad MaxSignatureValidity (%s)",rppolicy->MaxSignatureValidity);
+    ksrinvalid++;
+  }  
+  if(xmltimecmp(rppolicy->MinSignatureValidity,T_MIN_SIG_VAL)) { // match
+    logger_error("ZSK POLICY: Bad MinSignatureValidity (%s)",rppolicy->MinSignatureValidity);
+    ksrinvalid++;
+  }
+  if(xmltimecmp(rppolicy->MaxValidityOverlap,T_MAX_VALIDITY_OVERLAP) > 0) {
+    logger_error("ZSK POLICY: Bad MaxValidityOverlap (%s)",rppolicy->MaxValidityOverlap);
+    ksrinvalid++;
+  }  
+  if(xmltimecmp(rppolicy->MinValidityOverlap,T_MIN_VALIDITY_OVERLAP) < 0) {
+    logger_error("ZSK POLICY: Bad MinValidityOverlap (%s)",rppolicy->MinValidityOverlap);
+    ksrinvalid++;
+  }
+
+  // Test ZSK Key parameters (Other) against VRSN stated policies (RequestPolicy)
+  {
+    sigalg *xp;
+    uint32_t rsa_exp;
+    int n;
+    uint8_t *p;
+    krecord *y;
+    
+    for(y=rq->x_key;y;y=y->next) {      
+      p = y->pubexp->p0;
+      n = (int)(y->pubexp->pc - p);
+      rsa_exp = 0;
+      if(n > 4) {
+	logger_error("Unsupported exponent length (%d)",n);
+	ksrinvalid++;
+      } else {
+	for(;n>0;n--) rsa_exp = (rsa_exp<<8)|*p++;
+      }
+      if(debug) logger_info("alg:%d size:%d exp:%d",y->Algorithm,y->bits,rsa_exp);
+      for(xp=rppolicy->sigalg;xp;xp=xp->next) { // walk RequestPolicy SignatureAlgorithm and compare
+	if(debug) logger_info("  alg=%d size=%d exp=%d",xp->algorithm,xp->rsa_size,xp->rsa_exp);
+	if(y->Algorithm == xp->algorithm && y->bits == xp->rsa_size
+	   && rsa_exp == (uint32_t)xp->rsa_exp) break;
+      }
+      if(xp == NULL) { // no matches
+	logger_error("ZSK does not match any xml ZSK SignatureAlgorithm");
+	ksrinvalid++;
+      }
+      // no effect on DNSKEY RRset result but check VRSN xml "keytag" match while at it
+      if(y->keyTag != updatekeytag(y)) {
+	logger_error("ZSK xml keytag and actual keytag do not match (%d != %d)",
+		     y->keyTag,updatekeytag(y));
+	ksrinvalid++;
+      }
+    }
+  }
+
+  return 0;
+}
+
 /*! Check if request is valid (e.g., algorithms, protocols, validity period,
     proof of private key ownership, etc..)
 
@@ -723,12 +855,8 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
   }
 
   if(rq->Expiration > maxexpiration) {
-    /*
-    logger_warning("Requests signature expiration exceeds %d days. Limiting!",
-      (T_VLIMIT+1));
-    rq->Expiration = maxexpiration;
-    ksrinvalid++;
-    */
+    /* Changed from error to warning in DVD r600 to provide flexibility to personnel scheduling.
+       Previously limited rq->Expiration to maxexpiration and incremented ksrinvalid. */
     logger_warning("*** Requests signature expiration exceeds limit of %d days! ***",(T_VLIMIT+1));
   }
 
@@ -755,6 +883,8 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
   }
 #endif
 
+  check_requestpolicy(rq); // Add check of RequestPolicy. Note: This has no effect on resultant DNSKEY RRset
+  
   if(ksrinvalid) goto enderror;
 
   /*
@@ -788,7 +918,7 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
     ksrinvalid++;
     goto enderror;
   }
-
+  
   /*
    * Check other parameters and policy and signature lifetimes
    * ===== most done prior to here ====
@@ -873,10 +1003,12 @@ int signem(FILE *ftmp,xmlstate *xs)
     if(rppolicy->MinValidityOverlap) fprintf(ftmp,"<MinValidityOverlap>%s</MinValidityOverlap>\n",rppolicy->MinValidityOverlap);
     if(rppolicy->sigalg) {
       sigalg *sa;
-      sa = rppolicy->sigalg;
-      fprintf(ftmp,"<SignatureAlgorithm algorithm=\"%d\">\n",sa->algorithm);
-      fprintf(ftmp,"<RSA size=\"%d\" exponent=\"%d\"/>\n",sa->rsa_size,sa->rsa_exp);
-      fprintf(ftmp,"</SignatureAlgorithm>\n");
+      // Add support for multiple SignatureAlgorithms in ResponsePolicy. Note: This has no effect on resultant DNSKEY RRset
+      for(sa=rppolicy->sigalg;sa;sa=sa->next) {
+	fprintf(ftmp,"<SignatureAlgorithm algorithm=\"%d\">\n",sa->algorithm);
+	fprintf(ftmp,"<RSA size=\"%d\" exponent=\"%d\"/>\n",sa->rsa_size,sa->rsa_exp);
+	fprintf(ftmp,"</SignatureAlgorithm>\n");
+      }
     }
     fprintf(ftmp,"</ZSK>\n");
   }

@@ -54,7 +54,10 @@
 
 #define KSK_RRSIG_ALG             RRSIG_RSASHA256  /*!< KSK sig algorithm */
 #define KSK_RRSIG_RSA_KEYSIZE     2048             /*!< KSK sig keysize */
-#define KSK_RRSIG_RSA_EXPONENT    3                /*!< KSK sig exponent */
+// Correct exponent used in RequestPolicy/ResponsePolicy.  Does not effect DNSKEY RRSet result
+#define KSK_RRSIG_RSA_EXPONENT    65537            /*!< KSK sig exponent */
+#define KSK_RRSIG_RSA_EXPONENT_BN "\x01\x00\x01"   /*!< KSK sig exponent BN */
+#define KSK_RRSIG_RSA_EXPONENT_BNLEN  3            /*!< KSK sig exponent BN len */
 
 /*! Minimum number of empty slots required for KSK roll */
 #define MIN_SLOTS_FOR_KSK_ROLL    9
