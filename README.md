@@ -1,10 +1,10 @@
 # ICANN DNSSEC Key Tools
 
-This repository contains source code for the software used by IANA to manage
+This repository contains source code for the software used by PTI to manage
 the DNSSEC Key Signing Key (KSK) for the Root Zone.
 
 More information about Root Zone Management is available at
-http://www.iana.org/domains/root.
+https://www.iana.org/domains/root.
 
 ## License
 

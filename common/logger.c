@@ -43,7 +43,7 @@ static const char *logfile_timeformat = "%Y%m%d-%H%M%S";
 static const char *logentry_timeformat = "%Y-%m-%dT%H:%M:%SZ";
 static char logfile_fname[MAXPATHLEN];
 
-/*! emit fata error message with decoded error number and exit
+/*! emit fatal error message with decoded error number and exit
 
     \param message optional message string to incorporate into display
  */
@@ -74,7 +74,7 @@ static const char *pri2str(int pri)
   if (pri == LOG_ALERT)   return "alert";
   if (pri == LOG_CRIT)    return "critical";
   if (pri == LOG_ERR)     return "error";
-  if (pri == LOG_WARNING) return "waring";
+  if (pri == LOG_WARNING) return "warning";
   if (pri == LOG_NOTICE)  return "notice";
   if (pri == LOG_INFO)    return "info";
   if (pri == LOG_DEBUG)   return "debug";
