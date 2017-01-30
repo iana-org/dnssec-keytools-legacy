@@ -612,26 +612,28 @@ static int prevalidate(FILE *fksr)
     }
     for(x=rq->x_key,j=0;x && j<2;x=x->next) ksrk[j++] = x;
     if(i != 2) {
-      logger_error("Wrong number (%d) of ZSKs in SKR",i);
-      k++;
-      goto nmatch;
+      // Change for 1024->2048 ZSK fallback path KSRs. Error is now warning
+      logger_warning("Wrong number (%d) of ZSKs in SKR",i);
     }
     if(j != 2) {
-      logger_error("Wrong number (%d) of ZSKs in KSR",j);
-      k++;
-      goto nmatch;
+      // Changed for 1024->2048 ZSK fallback path KSRs. Error is now warning
+      logger_warning("Wrong number (%d) of ZSKs in KSR",j);
     }
-    if(
-       ((strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)
-         || strcmp(skrk[1]->PublicKey,ksrk[1]->PublicKey))
-        &&
-        (strcmp(skrk[0]->PublicKey,ksrk[1]->PublicKey)
-         || strcmp(skrk[1]->PublicKey,ksrk[0]->PublicKey)))
-       ) {
-      logger_error("Last SKR and current KSR keys do not match");
-      k++;
-    }
-  nmatch:
+    /* Added for 1024->2048 ZSK fallback path KSRs so that a single ZSK at the begining or end is acceptable */
+    if(i != j) k++;
+    else if(i == 1) {
+      if(strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)) k++;
+    } else if(i == 2) {
+      if(
+	 ((strcmp(skrk[0]->PublicKey,ksrk[0]->PublicKey)
+	   || strcmp(skrk[1]->PublicKey,ksrk[1]->PublicKey))
+	  &&
+	  (strcmp(skrk[0]->PublicKey,ksrk[1]->PublicKey)
+	   || strcmp(skrk[1]->PublicKey,ksrk[0]->PublicKey)))
+	 ) k++;
+    } else k++;
+    if(k) logger_error("Last SKR and current KSR keys do not match");
+    // nmatch: label no longer needed after 1024->2048 ZSK fallback changes above
     if(k) {
       logger_error("Problem with ZSK trust daisey chain.");
       logger_error("....FAILED. Skipped SKR-KSR trust chain check");

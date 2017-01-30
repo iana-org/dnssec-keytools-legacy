@@ -81,7 +81,8 @@ typedef struct _signature {
   char *SignatureData;
 } signature;
 
-typedef struct {
+typedef struct _sigalg {
+  struct _sigalg *next; // Add multiple SignatureAlgorithm support
   int algorithm;
   int rsa_size;
   int rsa_exp;
