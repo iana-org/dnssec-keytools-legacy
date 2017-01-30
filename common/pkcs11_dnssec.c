@@ -850,7 +850,7 @@ int pkcs11_getpub(char *label,char *id,mbuf *mod,mbuf *exp,void *vdc[],int kmax)
           if((rv=pfl->C_FindObjectsFinal(sh)) != CKR_OK) goto nopriv;
           if(i <= 0) {
           nopriv:
-            logger_warning("No matching private key for %s/%s in HSM %s slot %d",kr->label->p0,kr->id->p0,pk->lib,pk->slot);
+            logger_warning("No matching private key for %s in HSM %s slot %d",kr->label->p0,pk->lib,pk->slot);
           } else {
             kr->hkp = (void *)hPrivKeys[0];
           }
