@@ -8,7 +8,7 @@ https://www.iana.org/domains/root.
 
 ## License
 
-    Copyright (c) 2010-2016 Internet Corporation for Assigned Names and
+    Copyright (c) 2010-2017 Internet Corporation for Assigned Names and
     Numbers ("ICANN")
     
     Permission to use, copy, modify, and/or distribute this software for any

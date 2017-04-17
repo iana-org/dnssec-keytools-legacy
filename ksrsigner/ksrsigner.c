@@ -37,6 +37,7 @@ static const char *progname = "ksrsigner";
  */
 char *ksklabel_1,*ksklabel_2;
 time_t t_step,validityperiod,maxexpiration;
+char *ksrpath=NULL;
 
 krecord *ksks[MAX_KSKS];
 int nksk;
@@ -113,7 +114,7 @@ int main(int argc,char *argv[])
     if(ksrfile == NULL 
        && (p=strrchr(argv[i],'.')) 
        && strcmp(p,".xml") == 0) {
-      char *ksrpath;
+
 
       ksrfile = strdup(argv[i]); /* CVTY - maybe quiet complaints */
       ksrpath = strdup(ksrfile);
@@ -133,7 +134,7 @@ int main(int argc,char *argv[])
       skrfile = strdup(lbuf);
       snprintf(lbuf,sizeof(lbuf),"%s/%s",ksrpath,DEFAULT_SKR_FILENAME);
       skrold = strdup(lbuf);
-      free(ksrpath);
+
       continue;
     }
     /* From key ceremony rehearsals can specify -OceRidE or just -O */

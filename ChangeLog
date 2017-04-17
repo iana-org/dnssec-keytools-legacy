@@ -1,0 +1,120 @@
+2017-04-03	KSK Rollover
+
+	Version 20170403
+
+	* Changes to the KSR Signer “ksrsigner” component:
+
+	1. ksrsigner/ksrcommon.c: 
+	a. Added support to process the configuration file “kskschedule.json”.
+	b. Added support to process the configuration options to sign, publish 
+	   or revoke the KSK.
+
+	2. ksrsigner/ksrcommon.h: 
+	a. Added definition of json key schedule parsing support.
+
+	3. ksrsigner/ksrsigner.c: 
+	a. Added support to locate the configuration file kskschedule.json in the same
+	   place as the KSR.xml file.
+
+	4. ksrsigner/wksr.c: 
+	a. Added support to locate the configuration file kskschedule.json in the same 
+	   place as the KSR.xml file.
+
+	* Other changes:
+
+	5. utils/printlog:
+	a. Removed top margin.
+	b. Added header with name and page.
+	c. Reduced font size to fit better on the page.
+	
+	6. utils/hsmfd-hash:
+	a. New bash script to calculate, print and compare hashes for HSMFDs.
+
+	7. ChangeLog:
+	a. Added a change log file.
+
+	8. README.md:
+	a. Update copyright year to 2017
+
+
+2016-10-12	RSSAC003 Recommendation
+
+	Version 20161012
+
+	* Changes to the KSR Signer “ksrsigner” component:
+
+	1. ksrsigner/ksrpolicy.h: 
+	a. Changed the signature validity period to 21 days.
+	b. Changed the maximum signature validity to 21 days.
+	c. Changed the minimum signature validity to 21 days.
+	d. Changed the maximum signature validity overlap to 16 days.
+	e. Changed the minimum signature validity overlap to 9 days.
+
+	* Changes to the KSK Generator “kskgen” component:
+
+	2. kskgen/kskparams.h:
+	a. Changed the certificate signing request Organization (O) from ICANN to 
+	   Public Technical Identifiers (PTI) to reflect the organization PTI as the 
+	   new Root Zone KSK Operator.
+	b. Changed the certificate signing request Organization Unit (OU) to 
+	   Cryptographic Business Operations.
+
+	* Other changes:
+
+	3. common/logger.c
+	a. Fixed the misspelled word “fatal”.
+	b. Fixed the misspelled word “warning”.
+
+	4. common/pkcs11_dnssec.c
+	a. Changed a warning message in case there is not private key match.
+
+
+2016-04-19	ZSK Length Change
+
+	Version 20160419
+
+	* Changes to the KSR Signer “ksrsigner” component:
+
+	1. ksrsigner/ksrcommon.c
+	2. ksrsigner/ksrcommon.h
+	3. ksrsigner/ksrpolicy.h
+	4. ksrsigner/ksrsigner.c
+	5. ksrsigner/wksr.c
+
+	a. Added support for multiple SignatureAlgorithm fields and check
+	   the field on incoming KSR against actual key material and match fields
+	   outgoing SKR. Specifically it was discovered that neither ICANN nor
+	   Verisign were inspecting RequestPolicy or ResponsePolicy sections of
+	   the KSR-SKR XML exchange.  This was evidenced by the incorrect key
+	   exponent “3” being passed back and forth since the first key ceremony
+	   when it should have been “65537”. This had no effect on operations.
+	   However, it does not meet the specifications originally laid out.
+	b. Added tests for other fields in the ksr.xml fields including:
+	   Exponent length, SignatureAlgorithm and keytag. 
+	c. Removed tests that limited acceptable KSR formats to allow for
+	   extended single ZSK use across KSRs.
+
+
+2011-09-21	180 Days Warning	
+
+	Version 20110921
+
+	Allowed signings prior to 180 days from signature expiration. The idea
+	is to keep the 180-day validation but to replace the error (signing
+	interception) with a warning so that the signing could still be
+	completed.
+
+
+2010-10-29	x509 Schema
+	
+	Version 20101029
+
+	Changed to x509 schema.
+
+
+2010-06-12	Original
+
+	Version 20100612
+
+	First version.
+

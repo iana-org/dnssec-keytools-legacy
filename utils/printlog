@@ -12,14 +12,17 @@ fi
 
 # approx top margin in postscript points (1 point = 0.353 mm)
 # (might need to be adjusted to match the letterhead)
-top_margin=200
+## --margins=left:right:top:bottom
+## top_margin=200 #for ICANN header
+##--margins=::${top_margin}: \
+##--no-header \
 
 
 # strip keymgmt tools timestams and loglevel, then print using enscript
 sed 's/....-..-..T..:..:..Z: \[.*\] //' < $LOGFILE |\
 enscript \
 	--copies=${COPIES} \
-	--no-header \
-	--margins=::${top_margin}: \
-	--font=Courier10 \
-	--setpagedevice=Collate:true
+	--font=Courier7.5 \
+	--setpagedevice=Collate:true \
+	--header=$LOGFILE'||Page $% of $='
+

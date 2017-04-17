@@ -1,0 +1,75 @@
+#!/bin/sh
+#
+# Easy way to calculate, print and compare hashes for HSMFDs
+
+# Mount point for HSMFD
+hsmfd="/media/HSMFD"
+hsmfd_="/media/HSMFD_"
+
+# How to use the script
+usage ()
+	{
+	echo "Usage:$0 option"
+	echo "Option:"
+	echo " -h Show this message"
+	echo " -c Calculate the HSMFD SHA-256 hash and PGP Word List"
+	echo " -p Print the calculated HSMFD SHA-256 hash and PGP Word List using the default printer"
+	echo " -m Compare the calculated SHA-256 hashes between HSMFDs"
+	}
+
+# Checking if the FD is mounted 
+check_mount()
+	{
+	if [ ! -d $1 ]; then
+		echo "$1 is not mounted"
+		exit 1
+	fi
+	}
+
+# Select an option
+case $1 in
+	"-h")
+		usage
+		exit 1
+	;;
+	"-c")
+		check_mount $hsmfd
+		# Calculating the SHA-256 hash
+		sha256hsmfd=$(find -P $hsmfd -type f -print0 | sort -z | xargs -0 cat | sha2wordlist)
+		echo "$hsmfd"
+		echo "$sha256hsmfd"
+		exit
+	;;
+	"-p")
+		check_mount $hsmfd
+		 # Calculating the SHA-256 hash
+                sha256hsmfd=$(find -P $hsmfd -type f -print0 | sort -z | xargs -0 cat | sha2wordlist)
+                echo "$hsmfd"
+		echo "$sha256hsmfd"
+		echo -e "\n # find -P $hsmfd -type f -print0 | sort -z | xargs -0 cat | sha2wordlist \n\n $sha256hsmfd" | enscript --font=Courier10 --header='HSMFD SHA-256 HASH||%D{%Y/%m/%d}' 
+		exit
+	;;
+	"-m")
+		check_mount $hsmfd
+		check_mount $hsmfd_
+		# Calculating the SHA-256 hash
+		sha256hsmfd=$(find -P $hsmfd -type f -print0 | sort -z | xargs -0 cat | sha256sum)
+		sha256hsmfd_=$(find -P $hsmfd_ -type f -print0 | sort -z | xargs -0 cat | sha256sum)
+		echo "SHA-256 $hsmfd  : $sha256hsmfd"
+		echo "SHA-256 $hsmfd_ : $sha256hsmfd_"
+		# Comparing the hashes
+		if [ "$sha256hsmfd" != "$sha256hsmfd_" ];
+			then
+               		 echo "ERROR: SHA-256 hashes do not match, try to format the $hsmfd_ and copy again"
+	               	 exit 1
+		       else
+	                 echo "SHA-256 hashes match"
+		fi
+		exit
+	;;
+	*)
+		usage
+		exit 1
+	;;
+esac
+
