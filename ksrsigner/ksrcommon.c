@@ -540,8 +540,13 @@ void display_reqresp(reqresp *rqrs[],int cnt)
       if((y->Flags & DNSKEY_SEP_FLAG) == 0) continue;
       jj = strlen(lbuf);
       if(jj) lbuf[jj++] = ',';
-      cX -= snprintf(&lbuf[jj],cX,"%05u%s",y->keyTag,
-                     y->Flags & DNSKEY_REVOKE_FLAG ? "/R" : "");
+      char kuse[5];
+      signature *s;
+      kuse[0] = '\0';
+      if( (y->Flags & DNSKEY_REVOKE_FLAG) ) strcat(kuse,"R");
+      for(s=rq->x_sig;s;s=s->next) if(strcmp(s->keyIdentifier,y->keyIdentifier) == 0) break;
+      if(s) strcat(kuse,"S"); else strcat(kuse,"P"); // signed or pub only
+      cX -= snprintf(&lbuf[jj],cX,"%05u(%s)/%s",y->keyTag,y->keyIdentifier,kuse); // note: Revoke flag changes tag value
     }
 #endif
     myx_syslog(LOG_INFO,"  %-12s",lbuf);
@@ -901,15 +906,7 @@ int check_requestbundle(reqresp *rq,char *ksrdomain)
         ksrinvalid++;
         goto enderror;  /* if any error - exit */
       }
-      if(debug)
-        logger_info("Verified private key ownership for %05u",s->KeyTag);
-#ifdef VALIDATE_VALIDITY
-      /* find max VALIDATED expiration and inception time */
-      if(s->SignatureExpiration > rq->expmax) 
-        rq->expmax = s->SignatureExpiration;
-      if(s->SignatureInception < rq->incmin)
-        rq->incmin = s->SignatureInception;
-#endif
+      if(debug) logger_info("Verified private key ownership for %05u",s->KeyTag);
       keycnt++;
     }
   }
@@ -1023,6 +1020,22 @@ int signem(FILE *ftmp,xmlstate *xs)
     }
   }
 
+  kskslot *ks;
+  ks = NULL;
+  loadkeyschedule();   /* Try to load generalized key schedule json configuration */
+  if(ksksch0) {
+    i = 0;
+    for(ks=ksksch0->s;ks;ks=ks->next) i++;
+    if(i != reqscnt) {
+      logger_error("Number of slots in KSR and JSON (file:%s) config do not match",JSONKSCHEDULEFILE);
+      ksrinvalid++;
+      goto enderror;      
+    }
+    ks = ksksch0->s; // Note: multiple KSK schedules are loaded but only first one is used.
+    myx_syslog(LOG_INFO,"Reading KSK schedule \"%s\" from \"%s\"\n",ksksch0->name,JSONKSCHEDULEFILE);
+    myx_syslog(LOG_INFO,"#  KSK Tag(CKA_LABEL)\n");      
+  }
+
   /* reqs[] is now a sorted list */
   for(ir=0;ir<reqscnt;ir++) {
     rq = reqs[ir];
@@ -1030,6 +1043,84 @@ int signem(FILE *ftmp,xmlstate *xs)
     /*
      * pick KSK's to sign with
      */
+    if(ks) { /* Use json config file */
+      int j;
+      for(i=0;i<nksk;i++) {
+	ksks[i]->signer = 0;
+	if(ksks[i]->user) {
+	  free(ksks[i]->user);
+	  ksks[i]->user = NULL;
+	}
+      }
+      for(j=0;j<ks->n_pub;j++) {
+	for(i=0;i<nksk;i++) {
+	  if(strcmp((char *)ksks[i]->label->p0,ks->cka_label_pub[j]) == 0) {
+	    keys[keycnt++] = ksks[i];
+	    ksks[i]->Flags &= ~DNSKEY_REVOKE_FLAG; /* clear prior use */
+	    ksks[i]->keyTag = updatekeytag(ksks[i]);
+	    break;
+	  }
+	}
+	if(i == nksk) {
+	  logger_error("Key not in HSM %s",ks->cka_label_pub[j]);
+	  ksrinvalid++;
+	  goto enderror;
+	}	
+      }
+      for(j=0;j<ks->n_revoke;j++) {
+	for(i=0;i<nksk;i++) {
+	  if(strcmp((char *)ksks[i]->label->p0,ks->cka_label_revoke[j]) == 0) {
+	    keys[keycnt++] = ksks[i];
+	    ksks[i]->Flags |= DNSKEY_REVOKE_FLAG;
+	    ksks[i]->keyTag = updatekeytag(ksks[i]);
+	    break;
+	  }
+	}
+	if(i == nksk) {
+	  logger_error("Key not in HSM %s",ks->cka_label_revoke[j]);
+	  ksrinvalid++;
+	  goto enderror;
+	}
+      }
+      for(j=0;j<ks->n_sign;j++) {
+	for(i=0;i<keycnt;i++) {
+	  if(strcmp((char *)keys[i]->label->p0,ks->cka_label_sign[j]) == 0) { // Assumes no 2 KSK CKA_LABELS the same
+	    if(pkcs11_have_private_key(keys[i]->pkcb) == 0) {
+	      logger_error("Do not have private key for %s",ks->cka_label_sign[j]);
+	      ksrinvalid++;
+	      goto enderror;
+	    }
+	    keys[i]->signer = 1;
+	    break;
+	  }
+	}
+	if(i == keycnt) {
+	  logger_error("Key not in HSM %s",ks->cka_label_sign[j]);
+	  ksrinvalid++;
+	  goto enderror;
+	}
+      }
+      
+      char lbuf[MAXPATHLEN];
+      krecord *y;
+      int cX,jj;
+      char kuse[5];
+      cX = sizeof(lbuf);
+      jj = 0;
+      for(i=0;i<keycnt;i++) {
+	y = keys[i];
+	kuse[0] = '\0';
+	if( (y->Flags & DNSKEY_REVOKE_FLAG) ) strcat(kuse,"R");
+	if(y->signer) strcat(kuse,"S"); else strcat(kuse,"P"); // signed or pub only
+	if(i) { lbuf[jj] = ','; jj++; cX--; }
+	j = snprintf(&lbuf[jj],cX,"%05u(%s)/%s",y->keyTag,y->keyIdentifier,kuse); // note: Revoke flag changes tag value  
+	cX -= j;
+	jj += j;
+      }
+      myx_syslog(LOG_INFO,"%d %s\n",ir+1,lbuf);
+      
+      ks = ks->next; // next parralel ksk instructions
+    } else
     if(revoke_all) {
       for(i=0;i<nksk;i++) {
         if(
@@ -1121,7 +1212,7 @@ int signem(FILE *ftmp,xmlstate *xs)
     }
 
     /* 
-     * add ZSKs to sign
+     * add ZSKs to sign AFTER KSKs
      */
     {
       krecord *y;
@@ -1253,12 +1344,6 @@ int check_responsebundle(reqresp *rq)
         goto endkeytest;  /* if any error - exit */
       }
       if(debug) logger_debug("Validated signature made with %05u",s->KeyTag);
-#ifdef VALIDATE_VALIDITY
-      if(s->SignatureExpiration > rq->expmax)
-        rq->expmax = s->SignatureExpiration;
-      if(s->SignatureInception < rq->incmin)
-        rq->incmin = s->SignatureInception;
-#endif
       any++;
     }
   }
@@ -1437,3 +1522,218 @@ int algtohash(int alg)
   }
 }
 
+/*! Read in JSON config files
+  Added 13 January 2017 to support Jakob Schlyter config files 
+  for flexible key scheduling for first root KSK rollover. RHLamb
+*/
+
+/*
+Note: CKA_LABEL for Root KSK Operations is time() encoded in BASE32, i.e.,
+static const char cb32[] = "abcdefghijklmnopqrstuvwxyz234567";
+static const char cb32_ucase[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+*/
+
+static kskschedule *ksksch=NULL;
+
+static void kskschedule_add(char *label)
+{
+  kskschedule *ks;
+  
+  if(label == NULL) return;
+  ks = (kskschedule *)malloc(sizeof(kskschedule));
+  memset(ks,0,sizeof(kskschedule));  
+  if(ksksch0 == NULL) {
+    ksksch0 = ks;
+  } else {
+    if(ksksch->next) {
+      printf("%s: Error!!\n",__func__);
+      exit(1);
+    }
+    ksksch->next = ks;
+  }
+  ksksch = ks;
+  ksksch->name = strdup(label);
+}
+static void kskschedule_add_seq(char *label)
+{
+  kskslot *ks;
+
+  if(label == NULL) return;
+  if(ksksch == NULL) {
+    printf("%s: Error!!\n",__func__);
+    exit(1);
+  }
+  ks = (kskslot *)malloc(sizeof(kskslot));
+  memset(ks,0,sizeof(kskslot));
+  ks->seq = atoi(label);
+  if(ksksch->s == NULL) {
+    ksksch->s = ks;
+  } else {
+    kskslot *s;
+    for(s=ksksch->s;s;s=s->next) {
+      if(s->next == NULL) break;
+    }
+    s->next = ks;
+  }
+}
+static void kskschedule_add_key(char *label,char *key)
+{
+  kskslot *ks;
+  kskslot *s;
+  char *t_key,*args[JSON_NKEYS];
+  int i;
+  
+  if(label == NULL || key == NULL) return;
+  if(ksksch == NULL) {
+    printf("%s: Error A!!\n",__func__);
+    exit(1);
+  }
+  if(ksksch->s == NULL) {
+    printf("%s: Error B!!\n",__func__);
+    exit(1);
+  }
+  for(s=ksksch->s;s;s=s->next) {
+    if(s->next == NULL) break;
+  }
+  if(strcmp(label,"publish") == 0) {
+    if(s->cka_label_pub[0]) {  printf("%s: Error C publish!!\n",__func__); exit(1); }
+    t_key = strdup(key);
+    s->n_pub = lparse(t_key,args,JSON_NKEYS,',');
+    for(i=0;i<s->n_pub;i++) s->cka_label_pub[i] = strdup(args[i]);
+    free(t_key);
+  } else if(strcmp(label,"sign") == 0) {
+    if(s->cka_label_sign[0]) {  printf("%s: Error C sign!!\n",__func__); exit(1); }
+    t_key = strdup(key);
+    s->n_sign = lparse(t_key,args,JSON_NKEYS,',');
+    for(i=0;i<s->n_sign;i++) s->cka_label_sign[i] = strdup(args[i]);
+    free(t_key);    
+  } else if(strcmp(label,"revoke") == 0) {
+    if(s->cka_label_revoke[0]) {  printf("%s: Error C revoke!!\n",__func__); exit(1); }
+    t_key = strdup(key);
+    s->n_revoke = lparse(t_key,args,JSON_NKEYS,',');
+    for(i=0;i<s->n_revoke;i++) s->cka_label_revoke[i] = strdup(args[i]);
+    free(t_key);
+  } else {
+    printf("%s: Error C |%s|!!\n",__func__,label);
+    exit(1);
+  }
+}
+static void kskschedule_print()
+{
+  kskschedule *ks;
+  kskslot *s;
+  int j;
+  char kpub[80],krev[80],ksign[80];
+  for(ks=ksksch0;ks;ks=ks->next) {
+    printf("%s: %s\n    %15s %15s %15s\n",__func__,ks->name,"Pub","Revoke","Sign");
+    for(s=ks->s;s;s=s->next) {
+      kpub[0] = krev[0] = ksign[0] = '\0';
+      for(j=0;j<s->n_pub;j++) { if(j) strcat(kpub,","); strcat(kpub,s->cka_label_pub[j]); }
+      for(j=0;j<s->n_revoke;j++) { if(j) strcat(krev,","); strcat(krev,s->cka_label_revoke[j]); }
+      for(j=0;j<s->n_sign;j++) { if(j) strcat(ksign,","); strcat(ksign,s->cka_label_sign[j]); }
+      printf(" %d: %15s %15s %15s\n",s->seq,kpub,krev,ksign);
+    }
+  }
+}
+
+#define LABELBUFLEN 2560
+static FILE *jsonfp=NULL;
+static int jsondepth=0;
+
+static int jparse(void)
+{
+  int c,quote,bracket,n;
+  char *p,buf[LABELBUFLEN],label[LABELBUFLEN];
+
+  jsondepth++;
+  p = label;
+  n = 0;
+  quote = 0;
+  bracket = 0;
+  while((c=fgetc(jsonfp)) != EOF) {
+
+    if(c == '\n' || c == '\r' || c == ' ' || c == '\t') continue;
+    
+    if(quote == 1) {
+      if(c == '"') {
+        quote = 0;
+      } else {
+	if(c != '\\') { *p++ = c; n++; }
+      }
+      continue;
+    }
+    if(c == '"') { quote = 1; continue; }
+
+    else if(bracket == 1) {
+      if(c == ']') {
+	bracket = 0;
+      } else {
+	if(c != '\\') { *p++ = c; n++; }
+      }
+      continue;
+    }
+    if(c == '[') { bracket = 1; continue; }
+    
+    
+    else if(c == '{') {
+#ifdef JSONTEST
+      printf("\n");
+#endif      
+      *p++ = '\0';
+      p = label;
+      n = 0;
+      jparse(); // go till next '}'
+#ifdef JSONTEST
+      printf("*eol*%d*\n",jsondepth);
+#endif      
+    } else if(c == ':') { // label
+      *p++ = '\0';
+#ifdef JSONTEST
+      printf("%s:",label);
+#endif
+      if(jsondepth == 3) kskschedule_add(label);
+      if(jsondepth == 4) kskschedule_add_seq(label);
+      
+      p = buf;
+      n = 0;
+
+      //*p = '\0';
+
+    } else if(c == ',' || c == '}') { // contents
+
+      *p++ = '\0';
+#ifdef JSONTEST
+      printf("%s",buf);
+#endif      
+      if(jsondepth == 5) kskschedule_add_key(label,buf);
+
+      p = label;
+      n = 0;
+      
+      if(c == '}') {
+	jsondepth--;
+	return 0;
+      }
+    } else if(c == '\\') {
+      continue; 
+    } else {
+      *p++ = c;
+      n++;
+    }
+  }
+  return 0;
+}
+int loadkeyschedule(void)
+{
+  int ret;
+  char lbuf[MAXPATHLEN];
+  extern char *ksrpath;
+
+  if(ksrpath) snprintf(lbuf,sizeof(lbuf),"%s/%s",ksrpath,JSONKSCHEDULEFILE);
+  else snprintf(lbuf,sizeof(lbuf),"%s",JSONKSCHEDULEFILE);
+  if((jsonfp=fopen(lbuf,"r")) == NULL) return -1;
+  ret = jparse();
+  fclose(jsonfp);
+  if(debug) kskschedule_print();
+  return ret;
+}  

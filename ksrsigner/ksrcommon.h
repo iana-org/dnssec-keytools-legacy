@@ -159,4 +159,24 @@ extern int revoke_all;
 /* this was not */
 extern int debug;
 
+/* json key schedule parsing support */
+
+#define JSONKSCHEDULEFILE "kskschedule.json"
+typedef struct _kskslot {
+  struct _kskslot *next;
+  int seq;
+  int n_pub,n_revoke,n_sign;
+#define JSON_NKEYS 5
+  char *cka_label_pub[JSON_NKEYS];
+  char *cka_label_sign[JSON_NKEYS];
+  char *cka_label_revoke[JSON_NKEYS];
+} kskslot;
+typedef struct _kskschedule {
+  struct _kskschedule *next;
+  char *name;
+  kskslot *s;
+} kskschedule;
+static kskschedule *ksksch0=NULL;
+int loadkeyschedule(void);
+
 #endif /* _KSRCOMMON_H_ */

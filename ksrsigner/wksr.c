@@ -40,6 +40,7 @@ static const char *progname = "wksr";
  */
 char *ksklabel_1,*ksklabel_2;
 time_t t_step,validityperiod,maxexpiration;
+char *ksrpath=NULL;
 
 krecord *ksks[MAX_KSKS];
 int nksk;
