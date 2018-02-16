@@ -134,7 +134,7 @@ int main(int argc,char *argv[])
     logger_info("Generating %d bit RSA keypair...",DNSSEC_KSK_RSA_BITS);
 
     if((dcs=pkcs11_genrsakey(DNSSEC_KSK_RSA_BITS,DNSSEC_KSK_FLAGS)) == NULL) {
-      logger_error("Key generaton failed");
+      logger_error("Key generation failed");
       return -1;
     }
 
@@ -185,7 +185,7 @@ int main(int argc,char *argv[])
   dc->email = DN_EMAIL;
 
   /* 
-   * create a CSR - a simple private key proof of possesion
+   * create a CSR - a simple private key proof of possession
    */
   if((bp = mbuf_flat(create_csr(dc))) == NULL) return -1;
   snprintf(lbuf,sizeof(lbuf),"%s.csr",ksklabel);
@@ -362,7 +362,7 @@ static void kcrecord_free(kcrecord *dc)
 /* 
  *! called to fill in dnssec info - was important for keytag to be used for CKA_LABEL but team agreed to never do this in light of AEP Keyper implementation.  So now is called post PKCS11 keygen. Could use callbacks but keep it simple. 
 \param pk void ptr to PKCS11 structure for an HSM key.
-\return NULL if failed; otherwise newlly crated key record associated with pk.
+\return NULL if failed; otherwise newly created key record associated with pk.
 */
 static kcrecord *fillinkinfo(void *pk)
 {
@@ -418,7 +418,7 @@ static kcrecord *fillinkinfo(void *pk)
     uint8_t hash[512];
 
     p = pds = pbuf;
-    /* setup computation for DS rcords */
+    /* setup computation for DS records */
     p += dnssec_dn2wire(dc->dn,pds);
     /* compute tag and create dnskey */
     ptag = p;
