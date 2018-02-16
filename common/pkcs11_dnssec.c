@@ -116,7 +116,7 @@ mbuf *pkcs11_label(void *vkr)
   return ((pkkeycb *)vkr)->label;
 }
 
-/*! check to see if we have access to the private key in this key strust
+/*! check to see if we have access to the private key in this key struct
 
     \param vkr void cast pointer to pkcs11 key struct for key in question
     \return 1 if have private key; 0 if not
@@ -503,7 +503,7 @@ void pkcs11_close(void *vpk)
   if(i == pklistcnt) pkcs11init = 0;
 }
 
-/*! log in to HSM slot referrenced by pk
+/*! log in to HSM slot referenced by pk
     \param pk pointer to HSM slot struct to log in to
     \return -1 if failed; 0 if success
  */
@@ -827,7 +827,7 @@ int pkcs11_getpub(char *label,char *id,mbuf *mod,mbuf *exp,void *vdc[],int kmax)
 
         /* fillinkinfo(kr); was for CKA_LABEL = DNSSEC keytag */
 
-        /* get correspoding private key if possible */
+        /* get corresponding private key if possible */
         {
           CK_OBJECT_HANDLE hPrivKeys[2];
 
@@ -1091,7 +1091,7 @@ static char *get_monotonic_str()
   time_t t;
   static time_t t1=0;
 
-  if(t1) { /* since we are dropping the last base32 char, wait to gurantee uniqueness */
+  if(t1) { /* since we are dropping the last base32 char, wait to guarantee uniqueness */
     int i;
 
     i = 4 - (time(NULL) - t1); /* need at least 4 sec for the second digit to change */
@@ -1108,7 +1108,7 @@ static char *get_monotonic_str()
 /*! Generates a "bits" bit RSA key with label based on "flags"
     in the first HSM pkcs11_init() found.
 
-    The CKA_LABEL is based on a time based sting for uniquness.
+    The CKA_LABEL is based on a time based string for uniqueness.
     However duplicates are checked for in this routine nonetheless.
     Returns NULL on fail otherwise returns filled in struct.
     A later call to fillinkinfo() will populate DNSSEC key info.
